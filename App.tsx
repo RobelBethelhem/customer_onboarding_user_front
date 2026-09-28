@@ -43,8 +43,14 @@ const BACKGROUND_MAP: Record<number, string> = {
    [Step.AdditionalInfo]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2015&auto=format&fit=crop",
    [Step.Documents]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
    [Step.FaceVerify]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.Success]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webpe?q=80&w=2070&auto=format&fit=crop",
+   [Step.Success]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
 };
+
+// Interest-Free Banking (Z-Qamar) products use their own background on every step
+const IFB_BACKGROUND = '/IFB_background.webp';
+
+const backgroundFor = (step: number, ifb: boolean): string =>
+  ifb ? IFB_BACKGROUND : (BACKGROUND_MAP[step] || BACKGROUND_MAP[Step.Welcome]);
 
 const INITIAL_STATE: OnboardingState = {
   currentStep: Step.Landing,
@@ -267,87 +273,90 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Interest-Free Banking product selected: green theme, Z-Qamar logo and background
+  const isIfb = isIfbAccountType(state.selectedAccountType);
+
   const renderStep = useMemo(() => {
     switch (state.currentStep) {
       case Step.Landing:
         return <LandingPage onStart={handleStartOnboarding} />;
       case Step.Welcome:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <WelcomeStep onNext={nextStep} />
           </WizardWrapper>
         );
       case Step.ExistingAccount:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <ExistingAccountStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Branch:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <BranchSelectionStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.AccountType:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <AccountTypeStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.FaydaId:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <FaydaIdStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Otp:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <OtpVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Review:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <DataReviewStep state={state} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.AdditionalInfo:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <AdditionalInfoStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       /* Documents step commented out — skipped in flow
       case Step.Documents:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <DocumentUploadStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       */
       case Step.FaceVerify:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <FaceVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Services:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <ServicesStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.FinalReview:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <FinalReviewStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} onEdit={goToStep} />
           </WizardWrapper>
         );
       case Step.Success:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
             <SuccessStep state={state} onAmend={amendApplication} />
           </WizardWrapper>
         );
@@ -358,7 +367,7 @@ const App: React.FC = () => {
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)
-    <div className="min-h-screen" data-theme={isIfbAccountType(state.selectedAccountType) ? 'ifb' : undefined}>
+    <div className="min-h-screen" data-theme={isIfb ? 'ifb' : undefined}>
       <Toaster position="top-center" richColors />
       {renderStep}
       {showResumeModal && savedSessionData && (
@@ -373,10 +382,11 @@ const App: React.FC = () => {
   );
 };
 
-const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referrerName?: string }> = ({ children, step, referrerName }) => {
+const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referrerName?: string; ifb?: boolean }> = ({ children, step, referrerName, ifb = false }) => {
+  const targetBg = backgroundFor(step, ifb);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [currentBg, setCurrentBg] = useState(BACKGROUND_MAP[step] || BACKGROUND_MAP[Step.Welcome]);
-  const [prevBg, setPrevBg] = useState(BACKGROUND_MAP[step] || BACKGROUND_MAP[Step.Welcome]);
+  const [currentBg, setCurrentBg] = useState(targetBg);
+  const [prevBg, setPrevBg] = useState(targetBg);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Parallax effect
@@ -391,17 +401,16 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Handle Background Transition to avoid black flickers
+  // Handle Background Transition to avoid black flickers. Runs only when the target image changes
+  // (e.g. switching to/from an IFB product), so the fade timer isn't cleared by its own state update.
   useEffect(() => {
-    const nextBg = BACKGROUND_MAP[step] || BACKGROUND_MAP[Step.Welcome];
-    if (nextBg !== currentBg) {
-      setPrevBg(currentBg);
-      setCurrentBg(nextBg);
-      setIsTransitioning(true);
-      const timer = setTimeout(() => setIsTransitioning(false), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [step, currentBg]);
+    if (targetBg === currentBg) return;
+    setPrevBg(currentBg);
+    setCurrentBg(targetBg);
+    setIsTransitioning(true);
+    const timer = setTimeout(() => setIsTransitioning(false), 1200);
+    return () => clearTimeout(timer);
+  }, [targetBg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative min-h-screen flex flex-col items-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black">
@@ -438,13 +447,23 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
       {/* Cinematic Overlays */}
       <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
-      {/* Header Logo */}
+      {/* Header Logo — Z-Qamar for Interest-Free Banking products (white card: the logo has a white background) */}
       <div className="relative z-10 w-full max-w-2xl flex justify-center mb-6 sm:mb-10">
-        <img 
-          src="/zblogo.png"
-          alt="Zemen Bank"
-          className="h-10 object-contain drop-shadow-2xl"
-        />
+        {ifb ? (
+          <div className="bg-white rounded-xl px-3 py-1 shadow-2xl">
+            <img
+              src="/IFB_logo.png"
+              alt="Zemen Bank Z-Qamar Interest-Free Banking"
+              className="h-8 sm:h-10 object-contain"
+            />
+          </div>
+        ) : (
+          <img
+            src="/zblogo.png"
+            alt="Zemen Bank"
+            className="h-10 object-contain drop-shadow-2xl"
+          />
+        )}
       </div>
 
       {/* Progress Indicator */}
