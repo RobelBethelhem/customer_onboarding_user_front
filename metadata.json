@@ -1,0 +1,8 @@
+{
+  "name": "Zemen Bank Customer Onboarding",
+  "description": "A high-fidelity 10-step web onboarding wizard for Zemen Bank customers, featuring Fayda ID verification, face matching, and branch selection.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
