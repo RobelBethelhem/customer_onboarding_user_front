@@ -62,7 +62,7 @@ const ApplicationStatusChecker: React.FC<Props> = ({ onContinue }) => {
             type="text"
             value={appId}
             onChange={(e) => { setAppId(e.target.value); setError(''); }}
-            placeholder="Application ID (e.g. ZB000123)"
+            placeholder="Application ID (e.g. ZMN-00042)"
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-center tracking-wider"
           />
           <input

@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { CheckCircle2, Clock, Copy, ArrowRight, Home, Gift, AlertTriangle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock, Copy, ArrowRight, Home, Gift, AlertTriangle, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState } from '../types';
+import { ADDITIONAL_SERVICES } from '../constants';
 
 interface Props {
   state: OnboardingState;
@@ -126,6 +127,20 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
             <StepItem icon="3" text="Complete account regularization at your selected branch within 90 days" />
           </div>
         </div>
+
+        {/* Additional services requested (set up by the branch after the account is opened) */}
+        {(state.requestedServices || []).length > 0 && (
+          <div className="p-5 bg-brand-50 border border-brand-100 rounded-2xl flex items-start gap-4">
+            <Smartphone className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Your request for{' '}
+              <span className="font-bold">
+                {ADDITIONAL_SERVICES.filter(s => state.requestedServices.includes(s.id)).map(s => s.name).join(', ')}
+              </span>{' '}
+              will be set up by your branch once your account is opened. We will send you an SMS when it is ready.
+            </p>
+          </div>
+        )}
 
         {/* Referral Attribution */}
         {state.referralCode && (

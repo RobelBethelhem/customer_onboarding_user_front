@@ -238,6 +238,43 @@ export const ACCOUNT_TYPES: AccountType[] = [
  }
 ];
 
+/**
+ * Optional services offered after the account details. Ids must match the dashboard
+ * (lib/services.ts); the branch Personal Banker sets them up once the account is opened.
+ */
+export const ADDITIONAL_SERVICES = [
+  {
+    id: 'mobile_banking',
+    name: 'Mobile Banking',
+    summary: 'Bank from your phone with the Zemen Bank mobile app.',
+    details: [
+      'Check your balance and recent transactions anytime',
+      'Send money to Zemen Bank and other bank accounts',
+      'Pay bills, buy airtime and pay merchants from your phone',
+    ],
+  },
+  {
+    id: 'internet_banking',
+    name: 'Internet Banking',
+    summary: 'Manage your account online from a computer or laptop.',
+    details: [
+      'View your balance and download account statements',
+      'Transfer money and pay bills from your web browser',
+      'Handy for larger or more detailed transactions',
+    ],
+  },
+  {
+    id: 'debit_card',
+    name: 'Debit Card',
+    summary: 'A card linked to your account for cash and payments.',
+    details: [
+      'Withdraw cash at ATMs',
+      'Pay at shops and merchants that accept cards',
+      'We will send you an SMS when your card is ready',
+    ],
+  },
+];
+
 /** True for Interest-Free Banking products. Looked up by id so sessions saved before the flag existed still match. */
 export const isIfbAccountType = (account: AccountType | null | undefined): boolean =>
   !!account && !!ACCOUNT_TYPES.find(a => a.id === account.id)?.isIFB;

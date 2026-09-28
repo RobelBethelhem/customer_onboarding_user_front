@@ -55,7 +55,7 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
         </div>
       )}
 
-      <div className="p-10 text-center space-y-4">
+      <div className="p-6 sm:p-10 text-center space-y-4">
         <div className="inline-flex items-center justify-center p-6 bg-brand-50 rounded-full mb-4">
           <Fingerprint className="w-12 h-12 text-brand" />
         </div>
@@ -65,7 +65,7 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
         </p>
       </div>
 
-      <div className="p-10 flex-1 space-y-8">
+      <div className="p-6 sm:p-10 flex-1 space-y-8">
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
             Fayda Customer Number
@@ -75,7 +75,7 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
             placeholder="0000-0000-0000-0000"
             value={fcn}
             onChange={handleInputChange}
-            className="w-full text-center text-3xl font-mono py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand/10 tracking-widest transition-all"
+            className="w-full text-center text-xl sm:text-3xl font-mono py-5 sm:py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand/10 tracking-wider sm:tracking-widest transition-all"
           />
         </div>
 

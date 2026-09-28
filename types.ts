@@ -87,6 +87,8 @@ export interface OnboardingState {
   hasExistingAccount: boolean | null; // null until answered
   existingAccountNumber: string;      // 16-digit account number, if they gave one
   existingCif: string;                // 7-digit CIF (entered, or taken from the account number)
+  // Optional services, set up by the branch Personal Banker after the account is opened
+  requestedServices: string[];        // 'mobile_banking' | 'internet_banking' | 'debit_card'
 }
 
 export enum Step {
@@ -101,6 +103,7 @@ export enum Step {
   AdditionalInfo = 8,
   Documents = 9,
   FaceVerify = 10,
-  FinalReview = 11,
-  Success = 12
+  Services = 11,
+  FinalReview = 12,
+  Success = 13
 }

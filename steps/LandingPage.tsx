@@ -155,12 +155,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <span className="text-[10px] font-bold tracking-[0.3em] uppercase">ZEMEN BANK S.C.</span>
           </div>
           
-          <h1 className={`text-6xl md:text-8xl font-black mb-8 leading-[1.1] tracking-tighter transition-all duration-1000 delay-500 ${isIntroFinished ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <h1 className={`text-5xl sm:text-6xl md:text-8xl font-black mb-8 leading-[1.1] tracking-tighter transition-all duration-1000 delay-500 ${isIntroFinished ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             Elevate Your <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ed1c24] to-[#ed1c24]">Financial State</span>
           </h1>
           
-          <p className={`text-xl md:text-2xl text-white/70 mb-14 max-w-2xl mx-auto font-light leading-relaxed transition-all duration-1000 delay-700 ${isIntroFinished ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <p className={`text-lg sm:text-xl md:text-2xl text-white/70 mb-10 sm:mb-14 max-w-2xl mx-auto font-light leading-relaxed transition-all duration-1000 delay-700 ${isIntroFinished ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             The pinnacle of modern banking has arrived. <br/>
             Welcome to Zemen Bank Customer Onboarding System.
           </p>
@@ -171,7 +171,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </button>
           </div>
         </div>
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 text-white/40 animate-bounce">
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-3 text-white/40 animate-bounce">
           <span className="text-[10px] font-bold uppercase tracking-[0.5em]">Scroll Down</span>
           <ChevronDown className="w-5 h-5" />
         </div>

@@ -18,6 +18,7 @@ const STEP_LABELS: Record<number, string> = {
   [Step.AdditionalInfo]: "Details",
   // [Step.Documents]: "Docs",  // Commented out
   [Step.FaceVerify]: "Face",
+  [Step.Services]: "Services",
   [Step.FinalReview]: "Confirm",
 };
 
@@ -33,12 +34,28 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
     Step.AdditionalInfo,
     // Step.Documents,  // Commented out
     Step.FaceVerify,
+    Step.Services,
     Step.FinalReview
   ];
+  const currentIndex = stepsArray.indexOf(currentStep);
 
   return (
     <nav aria-label="Progress" className="w-full">
-      <ol role="list" className="flex items-center justify-between w-full">
+      {/* Phones: compact bar — ten step circles don't fit on a narrow screen */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-white/80 mb-2 drop-shadow">
+          <span>Step {currentIndex + 1} of {stepsArray.length}</span>
+          <span className="text-white">{STEP_LABELS[currentStep]}</span>
+        </div>
+        <div className="h-1.5 bg-white/25 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-brand rounded-full transition-all duration-500"
+            style={{ width: `${((currentIndex + 1) / stepsArray.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <ol role="list" className="hidden sm:flex items-center justify-between w-full">
         {stepsArray.map((step, idx) => {
           const isCompleted = step < currentStep;
           const isCurrent = step === currentStep;
@@ -82,18 +99,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
                   className={`
                     absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider transition-colors duration-300
                     ${isCurrent ? 'text-brand' : isCompleted ? 'text-gray-600' : 'text-gray-300'}
-                    hidden sm:block
                   `}
                 >
                   {STEP_LABELS[step]}
                 </span>
-                
-                {/* Mobile version of label: only show for active step */}
-                {isCurrent && (
-                  <span className="absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-brand sm:hidden">
-                    {STEP_LABELS[step]}
-                  </span>
-                )}
               </div>
             </li>
           );

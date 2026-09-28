@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import {
-  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send, UserCheck,
+  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send, UserCheck, Smartphone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
 import { faydaService } from '../services/api';
 import {
-  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES,
+  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, ADDITIONAL_SERVICES,
 } from '../constants';
 
 interface Props {
@@ -102,6 +102,8 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         existingCustomer: state.hasExistingAccount === true,
         existingCif: state.hasExistingAccount ? state.existingCif : '',
         existingAccountNumber: state.hasExistingAccount ? state.existingAccountNumber : '',
+        // Mobile Banking / Internet Banking / Debit Card — set up by the branch after approval
+        requestedServices: state.requestedServices || [],
       };
       const result = await faydaService.submitOnboarding(payload);
       onUpdate({ result });
@@ -217,6 +219,20 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
               <p>Your video will be reviewed by the KYC team.</p>
             </div>
           </div>
+        </Section>
+
+        {/* Additional services */}
+        <Section title="Additional Services" icon={<Smartphone className="w-4 h-4" />} onEdit={() => onEdit(Step.Services)}>
+          {(state.requestedServices || []).length > 0 ? (
+            <>
+              {ADDITIONAL_SERVICES.filter(s => state.requestedServices.includes(s.id)).map(s => (
+                <Row key={s.id} label={s.name} value="Requested" />
+              ))}
+              <p className="text-xs text-gray-500">Set up by your branch after your account is opened.</p>
+            </>
+          ) : (
+            <Row label="Services" value="None requested" />
+          )}
         </Section>
 
         {state.referralCode && (

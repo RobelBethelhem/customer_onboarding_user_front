@@ -18,6 +18,7 @@ import DataReviewStep from './steps/DataReviewStep';
 import AdditionalInfoStep from './steps/AdditionalInfoStep';
 import DocumentUploadStep from './steps/DocumentUploadStep';
 import FaceVerificationStep from './steps/FaceVerificationStep';
+import ServicesStep from './steps/ServicesStep';
 import FinalReviewStep from './steps/FinalReviewStep';
 import SuccessStep from './steps/SuccessStep';
 
@@ -82,7 +83,33 @@ const INITIAL_STATE: OnboardingState = {
   hasExistingAccount: null,
   existingAccountNumber: '',
   existingCif: '',
+  requestedServices: [],
 };
+
+// Sessions saved by an older version of the wizard: shift the step number past steps added
+// since, so a resumed session opens on the same screen.
+function upgradeSavedState(saved: OnboardingState): OnboardingState {
+  let state = saved;
+  if (state.hasExistingAccount === undefined) {
+    // Before the Existing Account step (2): continue as a new customer
+    state = {
+      ...state,
+      currentStep: state.currentStep >= Step.ExistingAccount ? state.currentStep + 1 : state.currentStep,
+      hasExistingAccount: false,
+      existingAccountNumber: '',
+      existingCif: '',
+    };
+  }
+  if (state.requestedServices === undefined) {
+    // Before the Additional Services step (11): no services requested
+    state = {
+      ...state,
+      currentStep: state.currentStep >= Step.Services ? state.currentStep + 1 : state.currentStep,
+      requestedServices: [],
+    };
+  }
+  return state;
+}
 
 const App: React.FC = () => {
   const [state, setState] = useState<OnboardingState>(INITIAL_STATE);
@@ -94,21 +121,7 @@ const App: React.FC = () => {
   useEffect(() => {
     loadSession().then(session => {
       if (!session) return;
-      // Sessions saved before the Existing Account step existed: every step from Branch on is
-      // one higher now, and the applicant continues as a new customer.
-      if (session.state.hasExistingAccount === undefined) {
-        const old = session.state;
-        session = {
-          ...session,
-          state: {
-            ...old,
-            currentStep: old.currentStep >= Step.ExistingAccount ? old.currentStep + 1 : old.currentStep,
-            hasExistingAccount: false,
-            existingAccountNumber: '',
-            existingCif: '',
-          },
-        };
-      }
+      session = { ...session, state: upgradeSavedState(session.state) };
       if (session.state.currentStep >= Step.Branch) {
         setSavedSessionData(session);
       }
@@ -320,6 +333,12 @@ const App: React.FC = () => {
             <FaceVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
+      case Step.Services:
+        return (
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+            <ServicesStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
+          </WizardWrapper>
+        );
       case Step.FinalReview:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
@@ -385,7 +404,7 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
   }, [step, currentBg]);
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black">
+    <div className="relative min-h-screen flex flex-col items-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black">
       
       {/* Background Layer 1 (Previous/Static) */}
       <div 
@@ -420,7 +439,7 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
       <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
       {/* Header Logo */}
-      <div className="relative z-10 w-full max-w-2xl flex justify-center mb-10">
+      <div className="relative z-10 w-full max-w-2xl flex justify-center mb-6 sm:mb-10">
         <img 
           src="/zblogo.png"
           alt="Zemen Bank"
@@ -430,7 +449,7 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
 
       {/* Progress Indicator */}
       {step > Step.Welcome && step < Step.Success && (
-        <div className="relative z-10 w-full max-w-2xl mb-14 px-4">
+        <div className="relative z-10 w-full max-w-2xl mb-6 sm:mb-14 px-1 sm:px-4">
           <ProgressBar currentStep={step} totalSteps={Step.Success - 1} />
         </div>
       )}
@@ -445,12 +464,12 @@ const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referre
       )}
 
       {/* Main Content Area */}
-      <main className="relative z-10 w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_50px_120px_-30px_rgba(0,0,0,0.8)] border border-white/30 overflow-hidden min-h-[500px] flex flex-col transition-all duration-500">
+      <main className="relative z-10 w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-3xl sm:rounded-[2.5rem] shadow-[0_50px_120px_-30px_rgba(0,0,0,0.8)] border border-white/30 overflow-hidden min-h-[500px] flex flex-col transition-all duration-500">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 mt-12 text-[10px] font-black uppercase tracking-[0.4em] text-white/60 text-center drop-shadow-md">
+      <footer className="relative z-10 mt-8 sm:mt-12 text-[10px] font-black uppercase tracking-[0.4em] text-white/60 text-center drop-shadow-md">
         &copy; {new Date().getFullYear()} Zemen Bank S.C.
       </footer>
     </div>

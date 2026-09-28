@@ -36,10 +36,15 @@ Navigation is driven by the `Step` enum (`types.ts`) and `currentStep` in centra
 
 ```
 Landing(0) → Welcome(1) → ExistingAccount(2) → Branch(3) → AccountType(4) → FaydaId(5)
-→ Otp(6) → Review(7) → AdditionalInfo(8) → [Documents(9) SKIPPED] → FaceVerify(10) → FinalReview(11) → Success(12)
+→ Otp(6) → Review(7) → AdditionalInfo(8) → [Documents(9) SKIPPED] → FaceVerify(10) → Services(11)
+→ FinalReview(12) → Success(13)
 ```
 
-**`Documents` (step 9) is skipped.** `App.tsx` defines `SKIPPED_STEPS = new Set([Step.Documents])`; `nextStep`/`prevStep` step over it and its `case` in `renderStep` is commented out. `DocumentUploadStep.tsx` still exists but is not reachable. `ProgressBar` likewise omits it (shows ExistingAccount→FinalReview).
+**`Documents` (step 9) is skipped.** `App.tsx` defines `SKIPPED_STEPS = new Set([Step.Documents])`; `nextStep`/`prevStep` step over it and its `case` in `renderStep` is commented out. `DocumentUploadStep.tsx` still exists but is not reachable. `ProgressBar` likewise omits it (shows ExistingAccount→FinalReview as circles on `sm`+ screens and as a compact "Step x of y" bar on phones).
+
+**Adding or reordering a step** shifts the numbers of saved sessions: extend `upgradeSavedState` in `App.tsx` so older sessions still resume on the same screen, and add the step to `ProgressBar` / `ResumeModal` labels.
+
+**`Services` step (optional):** Mobile Banking / Internet Banking / Debit Card (`ADDITIONAL_SERVICES` in `constants.tsx`, ids shared with the dashboard's `lib/services.ts`). Sent as `requestedServices`; after approval the branch Personal Banker sets them up in the dashboard and SMSes the customer.
 
 **`ExistingAccount` step:** "Do you already have an account?" — *No* continues the normal flow; *Yes* takes a 16-digit account number (CIF = `substring(6, 13)`) or a 7-digit CIF into `hasExistingAccount` / `existingAccountNumber` / `existingCif`, sent on submit as `existingCustomer` / `existingCif` / `existingAccountNumber`. The dashboard verifies the CIF in FlexCube and, on approval, opens only a new account under it (no new CIF). Sessions saved before this step existed are migrated on load in `App.tsx` (step +1, treated as new customer).
 
@@ -91,6 +96,10 @@ Static domain data: `COLORS`, `BRANCHES` (full branch list with lat/long + `bran
 Tailwind is loaded via **CDN** (`https://cdn.tailwindcss.com` in `index.html`), not a build dependency — there is no PostCSS; the inline `tailwind.config` in `index.html` only adds the `brand` colour. Custom CSS classes (`zemen-gradient`, `red-gradient`, `animate-fade-in`, `custom-scrollbar`, `otp-input`) live in the `<style>` block of `index.html`.
 
 **Brand colour:** wizard steps use the `brand` Tailwind colour (`bg-brand`, `text-brand`, `bg-brand/10`, `hover:bg-brand-dark`, `bg-brand-50`, `shadow-brand-200` …), backed by CSS variables (`--brand`, `--brand-dark`, `--brand-50/100/200`) — red `#ed1c24` by default. When an IFB product is selected, `App.tsx` sets `data-theme="ifb"` and the variables switch to green. Use `brand` (not `#ed1c24`) for new wizard UI; keep plain `red-*` only for errors/warnings. The landing page and its components still use the literal red. In `COLORS` both `primaryRed` and `primaryBlue` are `#ed1c24` (the "blue" is a leftover).
+
+### Mobile
+
+Most applicants use a phone: check new UI at 360px width. Use responsive classes for large text and padding (e.g. `text-xl sm:text-3xl`, `p-6 sm:p-10`) — the OTP boxes and the Fayda ID field were cut off on phones before they got this treatment.
 
 ### Browser APIs
 

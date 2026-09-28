@@ -196,7 +196,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         </div>
       )}
 
-      <div className="p-10 text-center space-y-4">
+      <div className="p-6 sm:p-10 text-center space-y-4">
         <div className="inline-flex items-center gap-2 bg-brand-50 px-4 py-2 rounded-full mb-2">
           <ShieldCheck className="w-4 h-4 text-brand" />
           <span className="text-xs font-bold text-brand">Fayda ID: {state.fcn.replace(/(.{4})/g, '$1-').slice(0, -1)}</span>
@@ -207,8 +207,8 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         </p>
       </div>
 
-      <div className="p-10 flex-1 flex flex-col items-center justify-center space-y-8">
-        <div className="flex gap-3">
+      <div className="p-6 sm:p-10 flex-1 flex flex-col items-center justify-center space-y-8">
+        <div className="flex gap-2 sm:gap-3">
           {otp.map((digit, idx) => (
             <input
               key={idx}
@@ -219,7 +219,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
               onChange={e => handleOtpChange(idx, e.target.value)}
               onKeyDown={e => handleKeyDown(idx, e)}
               onPaste={handlePaste}
-              className="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border border-gray-200 rounded-xl transition-all"
+              className="otp-input w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-gray-50 border border-gray-200 rounded-xl transition-all"
             />
           ))}
         </div>

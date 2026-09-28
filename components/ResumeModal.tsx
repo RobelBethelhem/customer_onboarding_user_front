@@ -19,6 +19,8 @@ const STEP_META: Record<number, { label: string; icon: React.ReactNode }> = {
   [Step.AdditionalInfo]: { label: 'Additional Information', icon: <FileText className="w-5 h-5" /> },
   [Step.Documents]:      { label: 'Document Upload',        icon: <FileText className="w-5 h-5" /> },
   [Step.FaceVerify]:     { label: 'Face Verification',      icon: <Camera className="w-5 h-5" /> },
+  [Step.Services]:       { label: 'Additional Services',    icon: <CreditCard className="w-5 h-5" /> },
+  [Step.FinalReview]:    { label: 'Review & Submit',        icon: <CheckCircle2 className="w-5 h-5" /> },
 };
 
 function timeAgo(timestamp: number): string {
