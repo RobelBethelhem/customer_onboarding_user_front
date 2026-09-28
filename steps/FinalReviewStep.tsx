@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import {
-  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send,
+  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send, UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
@@ -98,6 +98,10 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         faceVideoId: state.faceVideoId || '',
         channel: 'web',
         referralCode: state.referralCode || '',
+        // Existing customer — only a new account is opened under this CIF (no new CIF)
+        existingCustomer: state.hasExistingAccount === true,
+        existingCif: state.hasExistingAccount ? state.existingCif : '',
+        existingAccountNumber: state.hasExistingAccount ? state.existingAccountNumber : '',
       };
       const result = await faydaService.submitOnboarding(payload);
       onUpdate({ result });
@@ -124,7 +128,7 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
       {/* Submission overlay */}
       {isSubmitting && (
         <div className="absolute inset-0 bg-white/90 z-30 flex flex-col items-center justify-center backdrop-blur-md">
-          <Loader2 className="w-16 h-16 text-[#ed1c24] animate-spin mb-6" />
+          <Loader2 className="w-16 h-16 text-brand animate-spin mb-6" />
           <p className="text-xl font-bold text-gray-800">Processing Your Application...</p>
           <p className="text-sm text-gray-500 mt-2">Connecting to Zemen Bank Core Systems</p>
         </div>
@@ -136,6 +140,20 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
       </div>
 
       <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-5">
+
+        {/* Existing customer */}
+        <Section title="Existing Customer" icon={<UserCheck className="w-4 h-4" />} onEdit={() => onEdit(Step.ExistingAccount)}>
+          {state.hasExistingAccount ? (
+            <>
+              <Row label="Existing Customer" value="Yes" />
+              {state.existingAccountNumber && <Row label="Account Number" value={state.existingAccountNumber} />}
+              <Row label="CIF Number" value={state.existingCif || '—'} />
+              <p className="text-xs text-gray-500">Your new account will be opened under this CIF.</p>
+            </>
+          ) : (
+            <Row label="Existing Customer" value="No — new customer" />
+          )}
+        </Section>
 
         {/* Branch */}
         <Section title="Branch" icon={<MapPin className="w-4 h-4" />} onEdit={() => onEdit(Step.Branch)}>
@@ -219,7 +237,7 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex-[2] py-3 bg-[#ed1c24] text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:bg-[#B01A3A] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+          className="flex-[2] py-3 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-dark transition-all flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <Send className="w-4 h-4" /> Submit Application
         </button>
@@ -238,13 +256,13 @@ const Section: React.FC<{
   <div className="border border-gray-100 rounded-2xl overflow-hidden">
     <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
       <div className="flex items-center gap-2 text-gray-700">
-        <span className="text-[#ed1c24]">{icon}</span>
+        <span className="text-brand">{icon}</span>
         <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
       </div>
       {onEdit ? (
         <button
           onClick={onEdit}
-          className="flex items-center gap-1 text-[11px] font-bold text-[#ed1c24] hover:underline"
+          className="flex items-center gap-1 text-[11px] font-bold text-brand hover:underline"
         >
           <Pencil className="w-3 h-3" /> Edit
         </button>

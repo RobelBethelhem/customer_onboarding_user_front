@@ -6,8 +6,10 @@ import ProgressBar from './components/ProgressBar';
 import ResumeModal from './components/ResumeModal';
 import { saveSession, loadSession, clearSession } from './services/sessionStore';
 import { referralService } from './services/api';
+import { isIfbAccountType } from './constants';
 import LandingPage from './steps/LandingPage';
 import WelcomeStep from './steps/WelcomeStep';
+import ExistingAccountStep from './steps/ExistingAccountStep';
 import BranchSelectionStep from './steps/BranchSelectionStep';
 import AccountTypeStep from './steps/AccountTypeStep';
 import FaydaIdStep from './steps/FaydaIdStep';
@@ -77,6 +79,9 @@ const INITIAL_STATE: OnboardingState = {
   result: null,
   referralCode: '',
   referrerName: '',
+  hasExistingAccount: null,
+  existingAccountNumber: '',
+  existingCif: '',
 };
 
 const App: React.FC = () => {
@@ -88,7 +93,23 @@ const App: React.FC = () => {
   // Preload saved session on mount (don't show modal yet)
   useEffect(() => {
     loadSession().then(session => {
-      if (session && session.state.currentStep >= Step.Branch) {
+      if (!session) return;
+      // Sessions saved before the Existing Account step existed: every step from Branch on is
+      // one higher now, and the applicant continues as a new customer.
+      if (session.state.hasExistingAccount === undefined) {
+        const old = session.state;
+        session = {
+          ...session,
+          state: {
+            ...old,
+            currentStep: old.currentStep >= Step.ExistingAccount ? old.currentStep + 1 : old.currentStep,
+            hasExistingAccount: false,
+            existingAccountNumber: '',
+            existingCif: '',
+          },
+        };
+      }
+      if (session.state.currentStep >= Step.Branch) {
         setSavedSessionData(session);
       }
     });
@@ -243,6 +264,12 @@ const App: React.FC = () => {
             <WelcomeStep onNext={nextStep} />
           </WizardWrapper>
         );
+      case Step.ExistingAccount:
+        return (
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
+            <ExistingAccountStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
+          </WizardWrapper>
+        );
       case Step.Branch:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName}>
@@ -311,7 +338,8 @@ const App: React.FC = () => {
   }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication]);
 
   return (
-    <div className="min-h-screen">
+    // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)
+    <div className="min-h-screen" data-theme={isIfbAccountType(state.selectedAccountType) ? 'ifb' : undefined}>
       <Toaster position="top-center" richColors />
       {renderStep}
       {showResumeModal && savedSessionData && (

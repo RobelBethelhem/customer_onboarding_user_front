@@ -173,7 +173,8 @@ export const ACCOUNT_TYPES: AccountType[] = [
    interestRange: "5.00%",
   tiers: [
     { id: "971", name: "ZDigital IFB", range: "0 - 999,999 ETB", interestRate: 5.00 },
-   ]
+   ],
+    isIFB: true,
   },
 
   {
@@ -185,7 +186,8 @@ export const ACCOUNT_TYPES: AccountType[] = [
    interestRange: "5.00%",
   tiers: [
     { id: "971", name: "DWAD", range: "0 - 999,999 ETB", interestRate: 5.00 },
-   ]
+   ],
+    isIFB: true,
   },
  // {
  //   id: "EXECUTIVE",
@@ -235,6 +237,10 @@ export const ACCOUNT_TYPES: AccountType[] = [
    ]
  }
 ];
+
+/** True for Interest-Free Banking products. Looked up by id so sessions saved before the flag existed still match. */
+export const isIfbAccountType = (account: AccountType | null | undefined): boolean =>
+  !!account && !!ACCOUNT_TYPES.find(a => a.id === account.id)?.isIFB;
 
 export const WELCOME_FEATURES = [
   { 

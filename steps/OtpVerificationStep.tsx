@@ -179,7 +179,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         </p>
         <button 
           onClick={onBack}
-          className="px-8 py-3 bg-[#ed1c24] text-white font-bold rounded-xl"
+          className="px-8 py-3 bg-brand text-white font-bold rounded-xl"
         >
           Close
         </button>
@@ -191,15 +191,15 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
     <div className="flex flex-col h-full relative">
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
-          <Loader2 className="w-12 h-12 text-[#ed1c24] animate-spin mb-4" />
+          <Loader2 className="w-12 h-12 text-brand animate-spin mb-4" />
           <p className="font-semibold text-gray-800">Verifying Identity...</p>
         </div>
       )}
 
       <div className="p-10 text-center space-y-4">
-        <div className="inline-flex items-center gap-2 bg-red-50 px-4 py-2 rounded-full mb-2">
-          <ShieldCheck className="w-4 h-4 text-[#ed1c24]" />
-          <span className="text-xs font-bold text-[#ed1c24]">Fayda ID: {state.fcn.replace(/(.{4})/g, '$1-').slice(0, -1)}</span>
+        <div className="inline-flex items-center gap-2 bg-brand-50 px-4 py-2 rounded-full mb-2">
+          <ShieldCheck className="w-4 h-4 text-brand" />
+          <span className="text-xs font-bold text-brand">Fayda ID: {state.fcn.replace(/(.{4})/g, '$1-').slice(0, -1)}</span>
         </div>
         <h2 className="text-2xl font-bold text-gray-800">Verify OTP</h2>
         <p className="text-gray-500 max-w-sm mx-auto">
@@ -232,7 +232,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
 
           <button 
             disabled={!canResend}
-            className={`flex items-center gap-2 text-sm font-bold ${canResend ? 'text-[#ed1c24] hover:underline' : 'text-gray-300'}`}
+            className={`flex items-center gap-2 text-sm font-bold ${canResend ? 'text-brand hover:underline' : 'text-gray-300'}`}
           >
             <RefreshCw className="w-4 h-4" />
             Resend OTP
@@ -246,7 +246,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         </button>
         <button 
           onClick={handleVerify}
-          className="flex-[2] py-4 bg-[#ed1c24] text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:bg-[#B01A3A] transition-all"
+          className="flex-[2] py-4 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-dark transition-all"
         >
           Verify OTP
         </button>

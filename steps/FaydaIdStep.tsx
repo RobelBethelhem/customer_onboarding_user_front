@@ -50,14 +50,14 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
     <div className="flex flex-col h-full relative">
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
-          <Loader2 className="w-12 h-12 text-[#ed1c24] animate-spin mb-4" />
+          <Loader2 className="w-12 h-12 text-brand animate-spin mb-4" />
           <p className="font-semibold text-gray-800">Verifying ID...</p>
         </div>
       )}
 
       <div className="p-10 text-center space-y-4">
-        <div className="inline-flex items-center justify-center p-6 bg-red-50 rounded-full mb-4">
-          <Fingerprint className="w-12 h-12 text-[#ed1c24]" />
+        <div className="inline-flex items-center justify-center p-6 bg-brand-50 rounded-full mb-4">
+          <Fingerprint className="w-12 h-12 text-brand" />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">Enter Your Fayda ID</h2>
         <p className="text-gray-500 max-w-sm mx-auto">
@@ -75,7 +75,7 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
             placeholder="0000-0000-0000-0000"
             value={fcn}
             onChange={handleInputChange}
-            className="w-full text-center text-3xl font-mono py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#ed1c24]/10 tracking-widest transition-all"
+            className="w-full text-center text-3xl font-mono py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand/10 tracking-widest transition-all"
           />
         </div>
 
@@ -95,7 +95,7 @@ const FaydaIdStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
         </button>
         <button 
           onClick={handleVerify}
-          className="flex-[2] py-4 bg-[#ed1c24] text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:bg-[#B01A3A] transition-all"
+          className="flex-[2] py-4 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-dark transition-all"
         >
           Verify
         </button>

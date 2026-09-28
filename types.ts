@@ -25,6 +25,7 @@ export interface AccountType {
   minDeposit: number;
   interestRange: string;
   tiers: AccountTier[];
+  isIFB?: boolean; // Interest-Free Banking product — the wizard switches to the green IFB theme
 }
 
 export interface FaydaCustomerData {
@@ -82,19 +83,24 @@ export interface OnboardingState {
   // Referral tracking
   referralCode: string;       // e.g., 'REF-0015678' from URL param
   referrerName: string;       // Name of the person who referred (for banner display)
+  // Existing customer — the new account is opened under their current CIF (no new CIF)
+  hasExistingAccount: boolean | null; // null until answered
+  existingAccountNumber: string;      // 16-digit account number, if they gave one
+  existingCif: string;                // 7-digit CIF (entered, or taken from the account number)
 }
 
 export enum Step {
   Landing = 0,
   Welcome = 1,
-  Branch = 2,
-  AccountType = 3,
-  FaydaId = 4,
-  Otp = 5,
-  Review = 6,
-  AdditionalInfo = 7,
-  Documents = 8,
-  FaceVerify = 9,
-  FinalReview = 10,
-  Success = 11
+  ExistingAccount = 2,
+  Branch = 3,
+  AccountType = 4,
+  FaydaId = 5,
+  Otp = 6,
+  Review = 7,
+  AdditionalInfo = 8,
+  Documents = 9,
+  FaceVerify = 10,
+  FinalReview = 11,
+  Success = 12
 }

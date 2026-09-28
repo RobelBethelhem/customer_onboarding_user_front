@@ -308,7 +308,7 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
           disabled={!isFormValid()}
           onClick={handleNext}
           className={`flex-[2] py-3 text-white font-bold rounded-xl shadow-lg transition-all ${
-            isFormValid() ? 'bg-[#ed1c24] shadow-red-200 hover:bg-[#d41920]' : 'bg-gray-300 cursor-not-allowed'
+            isFormValid() ? 'bg-brand shadow-brand-200 hover:bg-brand-dark' : 'bg-gray-300 cursor-not-allowed'
           }`}
         >
           Continue
@@ -332,7 +332,7 @@ const InputGroup = ({ label, name, value, onChange, onBlur, placeholder, type = 
         onChange={onChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={`w-full ${icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ed1c24]/10 font-semibold transition-all`}
+        className={`w-full ${icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/10 font-semibold transition-all`}
       />
     </div>
   </div>
@@ -347,7 +347,7 @@ const SelectGroup = ({ label, name, value, onChange, options, placeholder, icon,
         name={name}
         value={value}
         onChange={onChange}
-        className={`w-full ${icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ed1c24]/10 font-semibold transition-all appearance-none ${
+        className={`w-full ${icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/10 font-semibold transition-all appearance-none ${
           !value ? 'text-gray-400' : 'text-gray-800'
         }`}
       >

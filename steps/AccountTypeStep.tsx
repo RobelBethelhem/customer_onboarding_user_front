@@ -50,7 +50,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
             <select
               value={selectedAccount?.id || ''}
               onChange={handleAccountChange}
-              className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ed1c24]/10 font-semibold transition-all appearance-none ${selectedAccount ? 'text-gray-800' : 'text-gray-400'}`}
+              className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/10 font-semibold transition-all appearance-none ${selectedAccount ? 'text-gray-800' : 'text-gray-400'}`}
             >
               <option value="" disabled>Select an account product</option>
               {ACCOUNT_TYPES.map((acc) => (
@@ -63,9 +63,9 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
 
         {/* Simplified product description */}
         {selectedAccount && (
-          <div className="p-4 rounded-xl border-2 border-[#ed1c24]/20 bg-red-50/30 space-y-3">
+          <div className="p-4 rounded-xl border-2 border-brand/20 bg-brand-50/30 space-y-3">
             <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-[#ed1c24] text-white shadow-md flex-shrink-0">
+              <div className="p-3 rounded-xl bg-brand text-white shadow-md flex-shrink-0">
                 {getIcon(selectedAccount.icon)}
               </div>
               <div className="flex-1">
@@ -92,7 +92,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
               <select
                 value={state.selectedTier?.id || ''}
                 onChange={handleTierChange}
-                className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ed1c24]/10 font-semibold transition-all appearance-none ${state.selectedTier ? 'text-gray-800' : 'text-gray-400'}`}
+                className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/10 font-semibold transition-all appearance-none ${state.selectedTier ? 'text-gray-800' : 'text-gray-400'}`}
               >
                 <option value="" disabled>Select an interest tier</option>
                 {selectedAccount.tiers.map((tier: AccountTier) => (
@@ -117,12 +117,12 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
       </div>
 
       {selectedAccount && (
-        <div className="px-6 py-3 bg-red-50/50 border-y border-red-100 flex justify-between items-center">
+        <div className="px-6 py-3 bg-brand-50/50 border-y border-brand-100 flex justify-between items-center">
           <div className="text-xs">
             <span className="text-gray-500">Selected: </span>
             <span className="font-bold text-gray-800">{selectedAccount.name}</span>
           </div>
-          <div className="text-xs font-bold text-[#ed1c24]">
+          <div className="text-xs font-bold text-brand">
             {state.selectedTier?.interestRate.toFixed(2)}% APR
           </div>
         </div>
@@ -135,7 +135,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
         <button
           disabled={!state.selectedTier}
           onClick={onNext}
-          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${state.selectedTier ? 'bg-[#ed1c24] shadow-lg shadow-red-200' : 'bg-gray-300 cursor-not-allowed'}`}
+          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${state.selectedTier ? 'bg-brand shadow-lg shadow-brand-200' : 'bg-gray-300 cursor-not-allowed'}`}
         >
           Continue
         </button>

@@ -115,7 +115,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
             placeholder="Search branches..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ed1c24]/20 transition-all"
+            className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
           />
           {searchTerm && (
             <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
@@ -127,7 +127,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         {/* Location status */}
         <div className="flex items-center gap-2">
           {locationLoading ? (
-            <div className="flex items-center gap-2 text-[#ed1c24] text-sm font-medium">
+            <div className="flex items-center gap-2 text-brand text-sm font-medium">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Detecting your location...</span>
             </div>
@@ -144,7 +144,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
               </div>
               <button
                 onClick={detectLocation}
-                className="flex items-center gap-1.5 text-[#ed1c24] text-sm font-medium hover:underline"
+                className="flex items-center gap-1.5 text-brand text-sm font-medium hover:underline"
               >
                 <Navigation className="w-3.5 h-3.5" />
                 Retry
@@ -153,7 +153,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
           ) : (
             <button
               onClick={detectLocation}
-              className="flex items-center gap-2 text-[#ed1c24] text-sm font-medium hover:underline"
+              className="flex items-center gap-2 text-brand text-sm font-medium hover:underline"
             >
               <Navigation className="w-4 h-4" />
               Detect My Location
@@ -165,8 +165,8 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         {nearestBranch && !searchTerm && (
           <div
             onClick={() => onUpdate({ selectedBranch: nearestBranch })}
-            className={`p-4 rounded-xl border-2 transition-all cursor-pointer bg-gradient-to-r from-[#ed1c24] to-[#B01A3A] text-white shadow-lg shadow-red-200 ${
-              state.selectedBranch?.id === nearestBranch.id ? 'ring-2 ring-offset-2 ring-red-500' : ''
+            className={`p-4 rounded-xl border-2 transition-all cursor-pointer bg-gradient-to-r from-brand to-brand-dark text-white shadow-lg shadow-brand-200 ${
+              state.selectedBranch?.id === nearestBranch.id ? 'ring-2 ring-offset-2 ring-brand' : ''
             }`}
           >
             <div className="flex justify-between items-start mb-2">
@@ -196,7 +196,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
               onClick={() => onUpdate({ selectedBranch: branch })}
               className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer group ${
                 state.selectedBranch?.id === branch.id
-                  ? 'border-[#ed1c24] bg-red-50'
+                  ? 'border-brand bg-brand-50'
                   : 'border-gray-100 hover:border-gray-200'
               }`}
             >
@@ -218,7 +218,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 transition-colors ${
-                  state.selectedBranch?.id === branch.id ? 'border-[#ed1c24] bg-[#ed1c24]' : 'border-gray-200'
+                  state.selectedBranch?.id === branch.id ? 'border-brand bg-brand' : 'border-gray-200'
                 }`}>
                   {state.selectedBranch?.id === branch.id && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
@@ -231,7 +231,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
           <div className="text-center py-8 text-gray-400">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-50" />
             <p className="font-medium">No branches match "{searchTerm}"</p>
-            <button onClick={() => setSearchTerm('')} className="text-[#ed1c24] text-sm mt-2 hover:underline">Clear search</button>
+            <button onClick={() => setSearchTerm('')} className="text-brand text-sm mt-2 hover:underline">Clear search</button>
           </div>
         )}
       </div>
@@ -244,7 +244,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
           disabled={!state.selectedBranch}
           onClick={onNext}
           className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${
-            state.selectedBranch ? 'bg-[#ed1c24] shadow-lg shadow-red-200' : 'bg-gray-300 cursor-not-allowed'
+            state.selectedBranch ? 'bg-brand shadow-lg shadow-brand-200' : 'bg-gray-300 cursor-not-allowed'
           }`}
         >
           Continue

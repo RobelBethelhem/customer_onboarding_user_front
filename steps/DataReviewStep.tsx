@@ -55,7 +55,7 @@ const DataReviewStep: React.FC<Props> = ({ state, onNext, onBack }) => {
               <h3 className="text-2xl font-bold text-gray-800 leading-tight">{data.fullName.eng}</h3>
               <p className="text-gray-500 font-medium text-lg">{data.fullName.amh}</p>
             </div>
-            <div className="inline-block bg-[#ed1c24]/10 text-[#ed1c24] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+            <div className="inline-block bg-brand/10 text-brand px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
               UIN: {data.uin}
             </div>
           </div>
@@ -101,7 +101,7 @@ const DataReviewStep: React.FC<Props> = ({ state, onNext, onBack }) => {
         </button>
         <button
           onClick={onNext}
-          className="flex-[2] py-3 bg-[#ed1c24] text-white font-bold rounded-xl shadow-lg shadow-red-200"
+          className="flex-[2] py-3 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand-200"
         >
           Continue
         </button>

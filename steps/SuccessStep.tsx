@@ -65,7 +65,7 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
           {onAmend && (
             <button
               onClick={onAmend}
-              className="w-full py-5 bg-[#ed1c24] text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(207,46,46,0.2)] hover:bg-[#B01A3A] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+              className="w-full py-5 bg-brand text-white font-black rounded-2xl shadow-[0_15px_30px_rgb(var(--brand)/0.2)] hover:bg-brand-dark transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
             >
               <RefreshCw className="w-5 h-5" />
               Review &amp; Resubmit
@@ -85,7 +85,7 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
   // ---- Approved / Pending ----
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className={`p-10 text-center text-white ${isApproved ? 'bg-[#ed1c24]' : 'zemen-gradient'}`}>
+      <div className={`p-10 text-center text-white ${isApproved ? 'bg-brand' : 'zemen-gradient'}`}>
         <div className="inline-flex p-4 bg-white/20 rounded-full mb-6">
           {isApproved ? <CheckCircle2 className="w-16 h-16" /> : <Clock className="w-16 h-16" />}
         </div>
@@ -105,7 +105,7 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
             {isApproved ? 'Your Customer Number' : 'Application Reference ID'}
           </p>
           <div className="flex items-center justify-center gap-4">
-            <h2 className="text-4xl font-mono font-black text-[#ed1c24] tracking-tighter">
+            <h2 className="text-4xl font-mono font-black text-brand tracking-tighter">
               {referenceId}
             </h2>
             <button
@@ -147,8 +147,8 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
         )}
 
         <div className="p-6 bg-blue-50/50 border border-blue-100/50 rounded-2xl flex gap-4">
-          <div className="w-1.5 h-full bg-[#ed1c24] rounded-full flex-shrink-0" />
-          <p className="text-sm text-[#ed1c24] font-medium leading-relaxed">
+          <div className="w-1.5 h-full bg-brand rounded-full flex-shrink-0" />
+          <p className="text-sm text-brand font-medium leading-relaxed">
             {isApproved
               ? 'Your digital account is now active and operates through approved digital banking channels. Confirmation details have been sent to your registered phone and email.'
               : 'Your application is being reviewed by our team. You will be notified of the outcome through your registered phone and email. No further action is required from you at this time.'}
@@ -159,7 +159,7 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
       <div className="p-8 border-t border-gray-50 flex flex-col gap-4 bg-gray-50/30">
         <button
           onClick={() => window.location.href = '/'}
-          className="w-full py-5 bg-[#ed1c24] text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(207,46,46,0.2)] hover:bg-[#B01A3A] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+          className="w-full py-5 bg-brand text-white font-black rounded-2xl shadow-[0_15px_30px_rgb(var(--brand)/0.2)] hover:bg-brand-dark transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
         >
           <Home className="w-5 h-5" />
           Go to Dashboard
@@ -170,12 +170,12 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
 };
 
 const StepItem = ({ icon, text }: { icon: string; text: string }) => (
-  <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-[#ed1c24]/30 transition-all cursor-pointer">
-    <div className="w-8 h-8 rounded-xl bg-[#ed1c24] text-white text-xs font-black flex items-center justify-center shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
+  <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-brand/30 transition-all cursor-pointer">
+    <div className="w-8 h-8 rounded-xl bg-brand text-white text-xs font-black flex items-center justify-center shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
       {icon}
     </div>
     <span className="text-sm font-bold text-gray-700">{text}</span>
-    <ArrowRight className="w-4 h-4 ml-auto text-gray-300 group-hover:text-[#ed1c24] group-hover:translate-x-1 transition-all" />
+    <ArrowRight className="w-4 h-4 ml-auto text-gray-300 group-hover:text-brand group-hover:translate-x-1 transition-all" />
   </div>
 );
 

@@ -71,9 +71,9 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
           />
         </div>
 
-        <div className="mt-10 p-5 bg-[#ed1c24]/5 border border-[#ed1c24]/10 rounded-2xl flex gap-4">
-          <div className="w-1.5 h-full bg-[#ed1c24] rounded-full" />
-          <p className="text-xs text-[#ed1c24] font-bold leading-relaxed uppercase tracking-wider italic">
+        <div className="mt-10 p-5 bg-brand/5 border border-brand/10 rounded-2xl flex gap-4">
+          <div className="w-1.5 h-full bg-brand rounded-full" />
+          <p className="text-xs text-brand font-bold leading-relaxed uppercase tracking-wider italic">
             Requirement: Please ensure your 16-digit Fayda National ID is available for authentication.
           </p>
         </div>
@@ -86,14 +86,14 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
               id="welcome-terms"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 w-4 h-4 accent-[#ed1c24] cursor-pointer flex-shrink-0"
+              className="mt-0.5 w-4 h-4 accent-brand cursor-pointer flex-shrink-0"
             />
             <label htmlFor="welcome-terms" className="text-xs text-gray-700 cursor-pointer leading-relaxed">
               I have read, understood, and agree to the{' '}
               <button
                 type="button"
                 onClick={() => setShowTerms(true)}
-                className="text-[#ed1c24] font-bold underline underline-offset-2 hover:text-[#ed1c24] transition-colors"
+                className="text-brand font-bold underline underline-offset-2 hover:text-brand transition-colors"
               >
                 Terms and Conditions
               </button>{' '}
@@ -110,7 +110,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
           disabled={!termsAccepted}
           className={`group w-full py-5 font-black rounded-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]
             ${termsAccepted
-              ? 'bg-[#ed1c24] text-white shadow-[0_20px_40px_rgba(207,46,46,0.3)] hover:bg-[#B01A3A]'
+              ? 'bg-brand text-white shadow-[0_20px_40px_rgb(var(--brand)/0.3)] hover:bg-brand-dark'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
             }`}
         >
@@ -130,7 +130,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ScrollText className="w-5 h-5 text-[#ed1c24]" />
+                <ScrollText className="w-5 h-5 text-brand" />
                 <h3 className="text-lg font-bold text-gray-900">Terms and Conditions</h3>
               </div>
               <button onClick={() => setShowTerms(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
@@ -149,7 +149,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
             <div className="p-4 border-t border-gray-100 flex gap-3">
               <button
                 onClick={() => { setTermsAccepted(true); setShowTerms(false); }}
-                className="flex-1 py-2.5 bg-[#ed1c24] text-white font-bold rounded-xl hover:bg-[#B01A3A] transition-colors text-sm"
+                className="flex-1 py-2.5 bg-brand text-white font-bold rounded-xl hover:bg-brand-dark transition-colors text-sm"
               >
                 I Accept
               </button>
@@ -168,8 +168,8 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
 };
 
 const FeatureRow = ({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) => (
-  <div className="flex items-start gap-5 p-5 rounded-2xl border border-gray-50 bg-white hover:border-[#ed1c24]/20 hover:shadow-xl hover:shadow-red-50/50 transition-all duration-300">
-    <div className="p-4 bg-red-50 text-[#ed1c24] rounded-xl">
+  <div className="flex items-start gap-5 p-5 rounded-2xl border border-gray-50 bg-white hover:border-brand/20 hover:shadow-xl hover:shadow-brand-50/50 transition-all duration-300">
+    <div className="p-4 bg-brand-50 text-brand rounded-xl">
       {icon}
     </div>
     <div>

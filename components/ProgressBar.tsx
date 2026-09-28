@@ -9,6 +9,7 @@ interface ProgressBarProps {
 }
 
 const STEP_LABELS: Record<number, string> = {
+  [Step.ExistingAccount]: "Customer",
   [Step.Branch]: "Branch",
   [Step.AccountType]: "Account",
   [Step.FaydaId]: "Fayda ID",
@@ -21,8 +22,9 @@ const STEP_LABELS: Record<number, string> = {
 };
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) => {
-  // We only show steps from Step.Branch (2) to Step.FaceVerify (9)
+  // We only show steps from Step.ExistingAccount to Step.FinalReview
   const stepsArray = [
+    Step.ExistingAccount,
     Step.Branch,
     Step.AccountType,
     Step.FaydaId,
@@ -51,7 +53,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
                   aria-hidden="true"
                 >
                   <div 
-                    className={`h-full transition-all duration-500 ease-in-out bg-[#ed1c24] ${isCompleted ? 'w-full' : 'w-0'}`}
+                    className={`h-full transition-all duration-500 ease-in-out bg-brand ${isCompleted ? 'w-full' : 'w-0'}`}
                   />
                 </div>
               )}
@@ -62,9 +64,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
                   className={`
                     flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300 z-10
                     ${isCompleted 
-                      ? 'bg-[#ed1c24] border-[#ed1c24] text-white' 
+                      ? 'bg-brand border-brand text-white' 
                       : isCurrent 
-                        ? 'bg-white border-[#ed1c24] text-[#ed1c24] shadow-sm ring-4 ring-red-50' 
+                        ? 'bg-white border-brand text-brand shadow-sm ring-4 ring-brand-50' 
                         : 'bg-white border-gray-200 text-gray-400'}
                   `}
                 >
@@ -79,7 +81,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
                 <span 
                   className={`
                     absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider transition-colors duration-300
-                    ${isCurrent ? 'text-[#ed1c24]' : isCompleted ? 'text-gray-600' : 'text-gray-300'}
+                    ${isCurrent ? 'text-brand' : isCompleted ? 'text-gray-600' : 'text-gray-300'}
                     hidden sm:block
                   `}
                 >
@@ -88,7 +90,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
                 
                 {/* Mobile version of label: only show for active step */}
                 {isCurrent && (
-                  <span className="absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-[#ed1c24] sm:hidden">
+                  <span className="absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-brand sm:hidden">
                     {STEP_LABELS[step]}
                   </span>
                 )}

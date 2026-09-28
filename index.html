@@ -6,17 +6,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zemen Bank | Customer Onboarding</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // `brand` reads the CSS variables below, so the wizard's colour can switch at runtime
+    // (green for Interest-Free Banking products — see [data-theme="ifb"]).
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+              dark: 'rgb(var(--brand-dark) / <alpha-value>)',
+              50: 'rgb(var(--brand-50) / <alpha-value>)',
+              100: 'rgb(var(--brand-100) / <alpha-value>)',
+              200: 'rgb(var(--brand-200) / <alpha-value>)',
+            },
+          },
+        },
+      },
+    };
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arial:wght@100;300;400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
+    /* Brand colour as space-separated RGB so Tailwind opacity modifiers (bg-brand/10) work */
+    :root {
+      --brand: 237 28 36;        /* #ed1c24 Zemen red */
+      --brand-dark: 176 26 58;   /* #B01A3A */
+      --brand-50: 254 242 242;
+      --brand-100: 254 226 226;
+      --brand-200: 254 202 202;
+    }
+    /* Interest-Free Banking (IFB) product selected */
+    [data-theme="ifb"] {
+      --brand: 0 132 61;         /* #00843D IFB green */
+      --brand-dark: 0 102 48;    /* #006630 */
+      --brand-50: 240 253 244;
+      --brand-100: 220 252 231;
+      --brand-200: 187 247 208;
+    }
     body {
       font-family: 'Inter', sans-serif;
       background-color: #FFFFFF;
       -webkit-font-smoothing: antialiased;
     }
     .zemen-gradient {
-      background: linear-gradient(135deg, #ed1c24 0%, #ed1c24 100%);
+      background: linear-gradient(135deg, rgb(var(--brand)) 0%, rgb(var(--brand)) 100%);
     }
     .red-gradient {
       background: linear-gradient(135deg, #ed1c24 0%, #ed1c24 100%);
@@ -32,8 +67,8 @@
       border-radius: 10px;
     }
     .otp-input:focus {
-      border-color: #ed1c24;
-      box-shadow: 0 0 0 2px rgba(207, 46, 46, 0.2);
+      border-color: rgb(var(--brand));
+      box-shadow: 0 0 0 2px rgb(var(--brand) / 0.2);
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(30px); }

@@ -351,7 +351,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
                 <div
                   className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-xs font-bold
                     ${done ? 'bg-green-500 text-white shadow-md shadow-green-200' :
-                      active ? 'bg-[#ed1c24] text-white shadow-lg shadow-red-200 ring-3 ring-red-100 scale-110' :
+                      active ? 'bg-brand text-white shadow-lg shadow-brand-200 ring-3 ring-brand-100 scale-110' :
                       'bg-gray-100 text-gray-400'}`}
                   title={step.label}
                 >
@@ -395,7 +395,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
           <div className="w-48 flex flex-col items-center gap-1">
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#ed1c24] rounded-full transition-all duration-200"
+                className="h-full bg-brand rounded-full transition-all duration-200"
                 style={{ width: `${recordingProgress}%` }}
               />
             </div>
@@ -452,7 +452,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
         {/* Fayda photo indicator */}
         {state.faydaData?.photo && (
           <div className="flex items-center gap-3 px-4 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-            <img src={toDataUri(state.faydaData.photo)} alt="Fayda ID" className="w-7 h-7 rounded-full object-cover border-2 border-[#ed1c24]" />
+            <img src={toDataUri(state.faydaData.photo)} alt="Fayda ID" className="w-7 h-7 rounded-full object-cover border-2 border-brand" />
             <span className="text-xs text-gray-500 font-medium">KYC team will verify against Fayda ID</span>
           </div>
         )}
@@ -488,7 +488,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
           {phase === 'idle' && (
             <button onClick={startVerification} disabled={!cameraReady}
               className={`flex items-center gap-2 px-7 py-2.5 font-bold rounded-full shadow-lg transition-all text-sm active:scale-95
-                ${!cameraReady ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#ed1c24] text-white shadow-red-200 hover:bg-[#B01A3A]'}`}>
+                ${!cameraReady ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand text-white shadow-brand-200 hover:bg-brand-dark'}`}>
               <Video className="w-4 h-4" />
               Start Recording
             </button>
@@ -508,7 +508,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
                 <RefreshCw className="w-4 h-4" /> Retake
               </button>
               <button onClick={handleUpload}
-                className="flex items-center gap-2 px-7 py-2.5 bg-[#ed1c24] text-white font-bold rounded-full shadow-lg shadow-red-200 text-sm active:scale-95 hover:bg-[#B01A3A]">
+                className="flex items-center gap-2 px-7 py-2.5 bg-brand text-white font-bold rounded-full shadow-lg shadow-brand-200 text-sm active:scale-95 hover:bg-brand-dark">
                 <CheckCircle2 className="w-4 h-4" /> Upload Video
               </button>
             </>
@@ -516,7 +516,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
 
           {phase === 'fail' && (
             <button onClick={handleRetake}
-              className="flex items-center gap-2 px-7 py-2.5 bg-[#ed1c24] text-white font-bold rounded-full shadow-lg shadow-red-200 text-sm active:scale-95 hover:bg-[#B01A3A]">
+              className="flex items-center gap-2 px-7 py-2.5 bg-brand text-white font-bold rounded-full shadow-lg shadow-brand-200 text-sm active:scale-95 hover:bg-brand-dark">
               <RefreshCw className="w-4 h-4" /> Try Again
             </button>
           )}
@@ -535,7 +535,7 @@ const FaceVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack
           disabled={phase !== 'success'}
           onClick={onNext}
           className={`flex-[2] py-3 text-white font-bold rounded-xl shadow-lg transition-all
-            ${phase === 'success' ? 'bg-[#ed1c24] shadow-red-200 hover:bg-[#B01A3A]' : 'bg-gray-300 cursor-not-allowed'}`}
+            ${phase === 'success' ? 'bg-brand shadow-brand-200 hover:bg-brand-dark' : 'bg-gray-300 cursor-not-allowed'}`}
         >
           Continue to Review
         </button>

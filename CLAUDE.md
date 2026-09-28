@@ -35,11 +35,13 @@ This is a frontend-only repo; it calls two remote backends defined at the top of
 Navigation is driven by the `Step` enum (`types.ts`) and `currentStep` in centralized state — there is no router library. Active flow:
 
 ```
-Landing(0) → Welcome(1) → Branch(2) → AccountType(3) → FaydaId(4)
-→ Otp(5) → Review(6) → AdditionalInfo(7) → [Documents(8) SKIPPED] → FaceVerify(9) → Success(10)
+Landing(0) → Welcome(1) → ExistingAccount(2) → Branch(3) → AccountType(4) → FaydaId(5)
+→ Otp(6) → Review(7) → AdditionalInfo(8) → [Documents(9) SKIPPED] → FaceVerify(10) → FinalReview(11) → Success(12)
 ```
 
-**`Documents` (step 8) is skipped.** `App.tsx` defines `SKIPPED_STEPS = new Set([Step.Documents])`; `nextStep`/`prevStep` step over it and its `case` in `renderStep` is commented out. `DocumentUploadStep.tsx` still exists but is not reachable. `ProgressBar` likewise omits it (shows Branch→FaceVerify).
+**`Documents` (step 9) is skipped.** `App.tsx` defines `SKIPPED_STEPS = new Set([Step.Documents])`; `nextStep`/`prevStep` step over it and its `case` in `renderStep` is commented out. `DocumentUploadStep.tsx` still exists but is not reachable. `ProgressBar` likewise omits it (shows ExistingAccount→FinalReview).
+
+**`ExistingAccount` step:** "Do you already have an account?" — *No* continues the normal flow; *Yes* takes a 16-digit account number (CIF = `substring(6, 13)`) or a 7-digit CIF into `hasExistingAccount` / `existingAccountNumber` / `existingCif`, sent on submit as `existingCustomer` / `existingCif` / `existingAccountNumber`. The dashboard verifies the CIF in FlexCube and, on approval, opens only a new account under it (no new CIF). Sessions saved before this step existed are migrated on load in `App.tsx` (step +1, treated as new customer).
 
 `App.tsx` is the orchestrator: it owns `OnboardingState`, renders the current step via `renderStep` (a `useMemo`), and wraps non-landing steps in `WizardWrapper` (parallax background, logo, progress bar, referral banner). Each step gets `state`, `onUpdate`, `onNext`, `onBack` props.
 
@@ -82,11 +84,13 @@ State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`, key 
 
 ### `constants.tsx`
 
-Static domain data: `COLORS`, `BRANCHES` (full branch list with lat/long + `branchCode`), `ACCOUNT_TYPES` / tiers, `WELCOME_FEATURES`, and **FlexCube LOV dropdowns** (`OCCUPATIONS`, `INDUSTRIES`, etc.). The LOV codes must match the FlexCube core-banking `FCUBSPRD.UDTM_LOV` table exactly — do not invent or relabel codes. Much of this file is commented-out account types/tiers; the only active account type is `YOUTH_SPECIAL`.
+Static domain data: `COLORS`, `BRANCHES` (full branch list with lat/long + `branchCode`), `ACCOUNT_TYPES` / tiers, `WELCOME_FEATURES`, and **FlexCube LOV dropdowns** (`OCCUPATIONS`, `INDUSTRIES`, etc.). The LOV codes must match the FlexCube core-banking `FCUBSPRD.UDTM_LOV` table exactly — do not invent or relabel codes. Much of this file is commented-out account types/tiers. Interest-Free Banking products carry `isIFB: true` (checked via `isIfbAccountType`).
 
 ### Styling
 
-Tailwind is loaded via **CDN** (`https://cdn.tailwindcss.com` in `index.html`), not a build dependency — there is no Tailwind config or PostCSS. Custom CSS classes (`zemen-gradient`, `red-gradient`, `animate-fade-in`, `custom-scrollbar`, `otp-input`) live in the `<style>` block of `index.html`. Brand color is red `#ed1c24` throughout; in `COLORS` both `primaryRed` and `primaryBlue` are `#ed1c24` (the "blue" is a leftover — there is effectively no blue).
+Tailwind is loaded via **CDN** (`https://cdn.tailwindcss.com` in `index.html`), not a build dependency — there is no PostCSS; the inline `tailwind.config` in `index.html` only adds the `brand` colour. Custom CSS classes (`zemen-gradient`, `red-gradient`, `animate-fade-in`, `custom-scrollbar`, `otp-input`) live in the `<style>` block of `index.html`.
+
+**Brand colour:** wizard steps use the `brand` Tailwind colour (`bg-brand`, `text-brand`, `bg-brand/10`, `hover:bg-brand-dark`, `bg-brand-50`, `shadow-brand-200` …), backed by CSS variables (`--brand`, `--brand-dark`, `--brand-50/100/200`) — red `#ed1c24` by default. When an IFB product is selected, `App.tsx` sets `data-theme="ifb"` and the variables switch to green. Use `brand` (not `#ed1c24`) for new wizard UI; keep plain `red-*` only for errors/warnings. The landing page and its components still use the literal red. In `COLORS` both `primaryRed` and `primaryBlue` are `#ed1c24` (the "blue" is a leftover).
 
 ### Browser APIs
 
