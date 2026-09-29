@@ -4,9 +4,10 @@ export interface Branch {
   name: string;
   category: "City" | "Outline";
   type: "Branch" | "Sub-branch";
-  latitude: number;
-  longitude: number;
+  latitude: number | null;   // null when the admin hasn't set a location
+  longitude: number | null;
   branchCode: string;
+  ifbCode?: string;          // branch used for interest-free (IFB) accounts, e.g. 164 → 664
   distanceKm?: number;
 }
 

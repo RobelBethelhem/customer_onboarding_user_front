@@ -21,6 +21,8 @@ export const COLORS = {
   darkBg: '#040708',
 };
 
+// Fallback only: the branch step loads the live list from the dashboard (GET /api/branches, maintained
+// by the admin in Settings → Branches) and uses this when the dashboard can't be reached.
 export const BRANCHES: Branch[] = [
   { id: 1, name: "18 Mazoria B.C", category: "City", type: "Branch", latitude: 9.03503, longitude: 38.71589, branchCode: "153" },
   { id: 2, name: "Abinet Banking Center", category: "City", type: "Branch", latitude: 9.016972, longitude: 38.735194, branchCode: "133" },

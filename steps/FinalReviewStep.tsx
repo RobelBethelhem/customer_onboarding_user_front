@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
 import { faydaService } from '../services/api';
 import {
-  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, ADDITIONAL_SERVICES,
+  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, ADDITIONAL_SERVICES, isIfbAccountType,
 } from '../constants';
 
 interface Props {
@@ -161,6 +161,9 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         <Section title="Branch" icon={<MapPin className="w-4 h-4" />} onEdit={() => onEdit(Step.Branch)}>
           <Row label="Home Branch" value={selectedBranch?.name || '—'} />
           <Row label="Branch Code" value={selectedBranch?.branchCode || '—'} />
+          {isIfbAccountType(selectedAccountType) && selectedBranch?.ifbCode && (
+            <Row label="IFB Branch Code" value={selectedBranch.ifbCode} />
+          )}
         </Section>
 
         {/* Account */}

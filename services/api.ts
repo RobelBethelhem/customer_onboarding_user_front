@@ -1,3 +1,4 @@
+import type { Branch } from '../types';
 
 const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
 const DASHBOARD_URL = 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
@@ -253,6 +254,13 @@ export interface ApplicationStatusResult {
   };
   error?: string;
 }
+
+// ========== Branch directory (maintained by the admin in the dashboard: Settings → Branches) ==========
+
+export const branchService = {
+  /** Active branches customers can choose */
+  list: () => dashboardGet<{ success: boolean; data: Branch[] }>('/api/branches'),
+};
 
 export const applicationService = {
   /** Look up an application's status by Application ID + phone number */

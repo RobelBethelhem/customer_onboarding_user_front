@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, MapPin, Navigation, Loader2, MapPinOff, X } from 'lucide-react';
 import { OnboardingState, Branch } from '../types';
 import { BRANCHES } from '../constants';
+import { branchService } from '../services/api';
 
 interface Props {
   state: OnboardingState;
@@ -31,6 +32,14 @@ const formatDistance = (km: number | undefined): string => {
 
 const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  // Branch list from the dashboard (admin-maintained); the built-in list is only a fallback
+  const [branches, setBranches] = useState<Branch[]>(BRANCHES);
+
+  useEffect(() => {
+    branchService.list()
+      .then(res => { if (res.success && res.data?.length) setBranches(res.data); })
+      .catch(err => console.log('[Branches] Using the built-in list:', err));
+  }, []);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -69,13 +78,16 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
   };
 
   const sortedBranches = useMemo(() => {
-    let list = BRANCHES.map(b => ({
+    let list = branches.map(b => ({
       ...b,
-      distanceKm: userLocation ? haversine(userLocation.lat, userLocation.lng, b.latitude, b.longitude) : undefined,
+      distanceKm: userLocation && b.latitude != null && b.longitude != null
+        ? haversine(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+        : undefined,
     }));
 
     if (userLocation) {
-      list.sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+      // Nearest first; branches without a location go last
+      list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
 
     if (searchTerm) {
@@ -88,7 +100,7 @@ const BranchSelectionStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
     }
 
     return list;
-  }, [userLocation, searchTerm]);
+  }, [branches, userLocation, searchTerm]);
 
   const nearestBranch = userLocation ? sortedBranches[0] : null;
 
