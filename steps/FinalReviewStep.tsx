@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
-import { faydaService } from '../services/api';
+import { faydaService, formatRate } from '../services/api';
 import {
   OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, ADDITIONAL_SERVICES, isIfbAccountType,
 } from '../constants';
@@ -89,9 +89,10 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         accountType: uc(state.selectedAccountType?.name),
         accountTypeId: state.selectedAccountType?.id || '',
         accountTypeName: uc(state.selectedAccountType?.name),
-        tierId: state.selectedTier?.id || '',
-        tierName: uc(state.selectedTier?.name),
-        tierInterestRate: state.selectedTier?.interestRate || 0,
+        // catalog: product id + class code identify the class; product number goes in the account template
+        tierId: state.selectedTier?.productNumber || '',
+        tierName: state.selectedTier?.code || uc(state.selectedTier?.name),
+        tierInterestRate: state.selectedTier?.interestRate ?? 0,
         faydaPhoto: state.faydaData?.photo || '',
         selfiePhoto: state.selfiePhoto,
         marriageCertificatePhoto: state.documents.map((d: any) => d.base64).join('|||'),
@@ -169,7 +170,7 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         {/* Account */}
         <Section title="Account" icon={<Landmark className="w-4 h-4" />} onEdit={() => onEdit(Step.AccountType)}>
           <Row label="Product" value={selectedAccountType?.name || '—'} />
-          <Row label="Interest Tier" value={selectedTier ? `${selectedTier.name} (${selectedTier.interestRate.toFixed(2)}%)` : '—'} />
+          <Row label="Account Class" value={selectedTier ? `${selectedTier.name} (${formatRate(selectedTier.interestRate, selectedAccountType?.isIFB)})` : '—'} />
           <Row label="Balance Range" value={selectedTier?.range || '—'} />
         </Section>
 

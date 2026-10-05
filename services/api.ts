@@ -1,4 +1,4 @@
-import type { Branch } from '../types';
+import type { AccountTier, AccountType, Branch } from '../types';
 
 const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
 const DASHBOARD_URL = 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
@@ -260,6 +260,56 @@ export interface ApplicationStatusResult {
 export const branchService = {
   /** Active branches customers can choose */
   list: () => dashboardGet<{ success: boolean; data: Branch[] }>('/api/branches'),
+};
+
+// ========== Account products (managed by KYC on the dashboard's Account Products page) ==========
+
+interface CatalogClass {
+  code: string; name: string; interestRate: number | null; minBalance: number | null;
+  maxBalance: number | null; remarks: string; productNumber: string;
+}
+interface CatalogProduct { id: string; name: string; description: string; isIFB: boolean; classes: CatalogClass[] }
+
+const etb = (n: number) => n.toLocaleString('en-US');
+
+function balanceRange(c: CatalogClass): string {
+  if (c.minBalance !== null && c.maxBalance !== null) return `${etb(c.minBalance)} - ${etb(c.maxBalance)} ETB`;
+  if (c.minBalance !== null) return `Min. ${etb(c.minBalance)} ETB`;
+  if (c.maxBalance !== null) return `Up to ${etb(c.maxBalance)} ETB`;
+  return c.remarks || 'Any balance';
+}
+
+export function formatRate(rate: number | null | undefined, isIFB?: boolean): string {
+  if (rate === null || rate === undefined) return isIFB ? 'Interest-free' : '—';
+  return `${Number(rate).toFixed(2)}%`;
+}
+
+function toAccountType(p: CatalogProduct): AccountType {
+  const tiers: AccountTier[] = p.classes.map(c => ({
+    id: c.code, code: c.code, name: c.name, range: balanceRange(c), interestRate: c.interestRate,
+    productNumber: c.productNumber, minBalance: c.minBalance, maxBalance: c.maxBalance, remarks: c.remarks,
+  }));
+  const rates = tiers.map(t => t.interestRate).filter((r): r is number => r !== null);
+  const mins = tiers.map(t => t.minBalance).filter((m): m is number => m !== null);
+  const lo = Math.min(...rates), hi = Math.max(...rates);
+  return {
+    id: p.id,
+    name: p.name,
+    icon: 'star',
+    description: p.description,
+    isIFB: p.isIFB,
+    tiers,
+    minDeposit: mins.length ? Math.min(...mins) : 0,
+    interestRange: !rates.length ? (p.isIFB ? 'Interest-free' : '—') : lo === hi ? formatRate(lo) : `${formatRate(lo)} - ${formatRate(hi)}`,
+  };
+}
+
+export const productService = {
+  /** Active account products and classes, in the order set by KYC */
+  list: async (): Promise<AccountType[]> => {
+    const res = await dashboardGet<{ success: boolean; data: CatalogProduct[] }>('/api/account-products');
+    return (res.data || []).map(toAccountType);
+  },
 };
 
 export const applicationService = {

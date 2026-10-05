@@ -153,93 +153,6 @@ export const BRANCHES: Branch[] = [
   { id: 127, name: "Shashemene arada sub-branch", category: "City", type: "Sub-branch", latitude: 7.203397, longitude: 38.594979, branchCode: "346" },
 ];
 
-export const ACCOUNT_TYPES: AccountType[] = [
-  {
-    id: "Z-Digital Account",
-   name: "Z-Digital",
-    icon: "star",
-   description: "The same as basic saving account",
-    minDeposit: 100,
-   interestRange: "5.00%",
-  tiers: [
-    { id: "26", name: "ZDigital", range: "0 - 999,999 ETB", interestRate: 5.00 },
-   ]
-  },
-
-  {
-    id: "Z-Digital IFB",
-   name: "Z-Digital IFB",
-    icon: "star",
-   description: "The same as IFB basic saving account",
-    minDeposit: 100,
-   interestRange: "5.00%",
-  tiers: [
-    { id: "971", name: "ZDigital IFB", range: "0 - 999,999 ETB", interestRate: 5.00 },
-   ],
-    isIFB: true,
-  },
-
-  {
-    id: "IFB Saving",
-   name: "IFB Saving",
-    icon: "star",
-   description: "The same as IFB saving account",
-    minDeposit: 100,
-   interestRange: "5.00%",
-  tiers: [
-    { id: "971", name: "DWAD", range: "0 - 999,999 ETB", interestRate: 5.00 },
-   ],
-    isIFB: true,
-  },
- // {
- //   id: "EXECUTIVE",
- //   name: "Executive Saving",
- //   icon: "briefcase",
- //   description: "Designed for professionals and executives needing flexible high-interest accounts.",
- //   minDeposit: 10000,
- //   interestRange: "7.00% - 8.50%",
- //   tiers: [
- //     { id: "EXEC_STD", name: "Standard", range: "0 - 99,999 ETB", interestRate: 7.00 },
- //     { id: "EXEC_BSC", name: "Basic", range: "100,000 - 499,999 ETB", interestRate: 7.25 },
- //     { id: "EXEC_SLV", name: "Silver", range: "500,000 - 999,999 ETB", interestRate: 7.50 },
- //     { id: "EXEC_GLD", name: "Gold", range: "1,000,000 - 4,999,999 ETB", interestRate: 8.00 },
- //     { id: "EXEC_PLT", name: "Platinum", range: "5,000,000+ ETB", interestRate: 8.50 },
- //   ]
- // },
- // {
- //   id: "ZCLUB_CHILDREN",
- //   name: "Z-Club Children Saving",
- //   icon: "child",
- //   description: "Secure your children's future with great rates and educational support.",
- //   minDeposit: 1000,
- //   interestRange: "7.00% - 8.50%",
- //   tiers: [
- //     { id: "CHILD_STD", name: "Standard", range: "0 - 49,999 ETB", interestRate: 7.00 },
- //     { id: "CHILD_BSC", name: "Basic", range: "50,000 - 249,999 ETB", interestRate: 7.50 },
- //     { id: "CHILD_GLD", name: "Gold", range: "250,000 - 999,999 ETB", interestRate: 8.00 },
- //     { id: "CHILD_EXC", name: "Exclusive", range: "1,000,000+ ETB", interestRate: 8.50 },
- //   ]
- // },
- {
-   id: "SAVING ACCOUNT",
-   name: "Youth Special Saving",
-   icon: "graduation",
-   description: "Start your financial journey with special rates tailored for students and young adults.",
-   minDeposit: 1000,
-   interestRange: "4.00% - 5.50%",
-   tiers: [
-     { id: "27", name: "DBSV", range: "0 - 49,999 ETB", interestRate: 7.00 },
-     { id: "36", name: "DZSG", range: "50,000 - 249,999 ETB", interestRate: 7.50 },
-     { id: "30", name: "DZSG", range: "250,000 - 999,999 ETB", interestRate: 8.00 },
-     { id: "35", name: "DZCL", range: "1,000,000+ ETB", interestRate: 8.50 },
-     { id: "37", name: "DZSB", range: "1,000,000+ ETB", interestRate: 8.50 },
-     { id: "28", name: "DZSP", range: "1,000,000+ ETB", interestRate: 8.50 },
-     { id: "38", name: "DPSV", range: "1,000,000+ ETB", interestRate: 8.50 },
-      { id: "29", name: "DFCY", range: "1,000,000+ ETB", interestRate: 8.50 },
-   ]
- }
-];
-
 /**
  * Optional services offered after the account details. Ids must match the dashboard
  * (lib/services.ts); the branch Personal Banker sets them up once the account is opened.
@@ -277,9 +190,9 @@ export const ADDITIONAL_SERVICES = [
   },
 ];
 
-/** True for Interest-Free Banking products. Looked up by id so sessions saved before the flag existed still match. */
+/** True for Interest-Free Banking products (the catalog's IFB flag; "IFB" in the name for sessions saved earlier). */
 export const isIfbAccountType = (account: AccountType | null | undefined): boolean =>
-  !!account && !!ACCOUNT_TYPES.find(a => a.id === account.id)?.isIFB;
+  !!account && (account.isIFB === true || /\bIFB\b/i.test(`${account.id} ${account.name}`));
 
 export const WELCOME_FEATURES = [
   { 

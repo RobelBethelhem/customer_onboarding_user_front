@@ -11,11 +11,17 @@ export interface Branch {
   distanceKm?: number;
 }
 
+// An account class from the bank's product catalog (dashboard → Account Products)
 export interface AccountTier {
-  id: string;
-  name: string;
-  range: string;
-  interestRate: number;
+  id: string;                  // class code, e.g. 'DBSV'
+  name: string;                // e.g. 'Basic Saving — Digital'
+  range: string;               // balance band shown to the customer
+  interestRate: number | null; // % per year; null = interest-free / not stated
+  code: string;
+  productNumber: string;       // sent as tierId (FlexCube account template)
+  minBalance: number | null;
+  maxBalance: number | null;
+  remarks: string;
 }
 
 export interface AccountType {

@@ -89,7 +89,7 @@ State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`, key 
 
 ### `constants.tsx`
 
-Static domain data: `COLORS`, `BRANCHES` (full branch list with lat/long + `branchCode`), `ACCOUNT_TYPES` / tiers, `WELCOME_FEATURES`, and **FlexCube LOV dropdowns** (`OCCUPATIONS`, `INDUSTRIES`, etc.). The LOV codes must match the FlexCube core-banking `FCUBSPRD.UDTM_LOV` table exactly — do not invent or relabel codes. Much of this file is commented-out account types/tiers. Interest-Free Banking products carry `isIFB: true` (checked via `isIfbAccountType`).
+Static domain data: `COLORS`, `BRANCHES` (full branch list with lat/long + `branchCode`), `WELCOME_FEATURES`, and **FlexCube LOV dropdowns** (`OCCUPATIONS`, `INDUSTRIES`, etc.). The LOV codes must match the FlexCube core-banking `FCUBSPRD.UDTM_LOV` table exactly — do not invent or relabel codes. Account types are **not** here: `AccountTypeStep` loads them from the dashboard (`productService.list()` → GET `/api/account-products`), which KYC officers manage on the dashboard's Account Products page (add, deactivate, reorder). A product maps to `AccountType` (`id` = product id, `isIFB`), each account class to `AccountTier` (`id`/`code` = class code such as `DBSV`, `productNumber`, `interestRate` may be `null` = interest-free). On submit `accountTypeId` = product id, `tierName` = class code, `tierId` = product number. `isIfbAccountType` checks the `isIFB` flag.
 
 ### Styling
 
