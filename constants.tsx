@@ -154,41 +154,18 @@ export const BRANCHES: Branch[] = [
 ];
 
 /**
- * Optional services offered after the account details. Ids must match the dashboard
- * (lib/services.ts); the branch Personal Banker sets them up once the account is opened.
+ * Additional services come from the dashboard (Products & Services page). These names cover
+ * sessions saved before that, which only stored the service ids.
  */
-export const ADDITIONAL_SERVICES = [
-  {
-    id: 'mobile_banking',
-    name: 'Mobile Banking',
-    summary: 'Bank from your phone with the Zemen Bank mobile app.',
-    details: [
-      'Check your balance and recent transactions anytime',
-      'Send money to Zemen Bank and other bank accounts',
-      'Pay bills, buy airtime and pay merchants from your phone',
-    ],
-  },
-  {
-    id: 'internet_banking',
-    name: 'Internet Banking',
-    summary: 'Manage your account online from a computer or laptop.',
-    details: [
-      'View your balance and download account statements',
-      'Transfer money and pay bills from your web browser',
-      'Handy for larger or more detailed transactions',
-    ],
-  },
-  {
-    id: 'debit_card',
-    name: 'Debit Card',
-    summary: 'A card linked to your account for cash and payments.',
-    details: [
-      'Withdraw cash at ATMs',
-      'Pay at shops and merchants that accept cards',
-      'We will send you an SMS when your card is ready',
-    ],
-  },
-];
+export const LEGACY_SERVICE_NAMES: Record<string, string> = {
+  mobile_banking: 'Mobile Banking',
+  internet_banking: 'Internet Banking',
+  debit_card: 'Debit Card',
+};
+
+/** Names of the services the customer chose, in the order chosen */
+export const chosenServiceNames = (state: { requestedServices: string[]; selectedServices?: { id: string; name: string }[] }): string[] =>
+  (state.requestedServices || []).map(id => state.selectedServices?.find(s => s.id === id)?.name || LEGACY_SERVICE_NAMES[id] || id);
 
 /** True for Interest-Free Banking products (the catalog's IFB flag; "IFB" in the name for sessions saved earlier). */
 export const isIfbAccountType = (account: AccountType | null | undefined): boolean =>

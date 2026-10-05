@@ -44,7 +44,9 @@ Landing(0) → Welcome(1) → ExistingAccount(2) → Branch(3) → AccountType(4
 
 **Adding or reordering a step** shifts the numbers of saved sessions: extend `upgradeSavedState` in `App.tsx` so older sessions still resume on the same screen, and add the step to `ProgressBar` / `ResumeModal` labels.
 
-**`Services` step (optional):** Mobile Banking / Internet Banking / Debit Card (`ADDITIONAL_SERVICES` in `constants.tsx`, ids shared with the dashboard's `lib/services.ts`). Sent as `requestedServices`; after approval the branch Personal Banker sets them up in the dashboard and SMSes the customer.
+**`Services` step (optional):** the services come from the dashboard (`additionalServicesService.list()` → GET `/api/additional-services`), managed by KYC on the dashboard's Products & Services page (add, switch off, reorder, terms). A service with `termsText` must have its terms accepted before it can be chosen (tapping it opens the terms sheet; "I accept" chooses it). Sent as `requestedServices` (ids) plus `serviceTermsAccepted: [{ id, version, acceptedAt }]`; `selectedServices` keeps the names for the review screens (`chosenServiceNames` in `constants.tsx`, with `LEGACY_SERVICE_NAMES` for older sessions). After approval the branch Personal Banker sets them up and SMSes the customer. The terms sheet is rendered with a portal into `#app-root` — inside the (transformed) wizard card a `fixed` sheet would be pinned to the card, not the screen.
+
+**`FaceVerify` step — live check:** face-api.js runs in the browser (`utils/liveness.ts`; lazy-loaded, models in `public/models`: tiny face detector + 68 landmarks). The customer holds still (that frame is the selfie), then opens their mouth and turns their head in random order; the video records throughout for KYC. The frames that passed in the browser are sent to `verifyLiveness` (`/api/face/verify-liveness`): the Fayda backend checks them again, runs the anti-spoof model and compares with the Fayda photo, and returns a **signed token**. The token goes with the application; the backend only trusts it for the same selfie/Fayda photo, so the dashboard gets the server's verdict, never a browser score. Failed checks can be retried; after 3 the customer may continue ("our team will review") with the result recorded. If face-api.js cannot run on the device, it falls back to a 5-second video only.
 
 **`ExistingAccount` step:** "Do you already have an account?" — *No* continues the normal flow; *Yes* takes a 16-digit account number (CIF = `substring(6, 13)`) or a 7-digit CIF into `hasExistingAccount` / `existingAccountNumber` / `existingCif`, sent on submit as `existingCustomer` / `existingCif` / `existingAccountNumber`. The dashboard verifies the CIF in FlexCube and, on approval, opens only a new account under it (no new CIF). Sessions saved before this step existed are migrated on load in `App.tsx` (step +1, treated as new customer).
 
@@ -72,11 +74,12 @@ State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`, key 
 | `validateOtp` | `/api/fayda/ekyc` | OTP → eKYC customer data | `OtpVerificationStep` |
 | `resendFcn` | `/api/resend` | Resend OTP | OTP step |
 | `screeningCheck` | `/api/screening/check` | Sanctions/OFAC screening (runs right after OTP) | `OtpVerificationStep` |
-| `detectFace` | `/api/face/detect` | Face count + expressions | `FaceVerificationStep` |
-| `checkLiveness` | `/api/face/liveness` | Server-side liveness challenge (blink/smile/turn) | `FaceVerificationStep` |
+| `verifyLiveness` | `/api/face/verify-liveness` | Live check: frames re-checked on the server, anti-spoof, match with the Fayda photo → signed token | `FaceVerificationStep` |
+| `detectFace` | `/api/face/detect` | Face count + expressions (no longer used by the web app) | — |
+| `checkLiveness` | `/api/face/liveness` | Single-frame liveness challenge (no longer used by the web app) | — |
 | `passiveLiveness` | `/api/face/passive-liveness` | **Deprecated**, kept for reference | — |
 | `uploadFaceVideo` | `/api/face/upload-video` | Upload video for manual KYC | `FaceVerificationStep` |
-| `compareFace` | `/api/face/compare` | Match selfie vs Fayda ID photo | `FaceVerificationStep` |
+| `compareFace` | `/api/face/compare` | Match selfie vs Fayda ID photo (the live check does this itself) | — |
 | `submitOnboarding` | `/api/flexcube/create-customer` | Final account creation in core banking | `FaceVerificationStep` |
 
 `referralService` (talks to `api2` / dashboard): `verifyAccount` (POST), `validateCode` (GET `/api/referrals/:code`), `getRewards` (GET), `convertPoints` (POST). When changing payload field names, match the backend exactly — several call sites carry comments noting the field names are backend-coupled.

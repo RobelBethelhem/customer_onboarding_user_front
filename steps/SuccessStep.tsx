@@ -3,7 +3,7 @@ import React from 'react';
 import { CheckCircle2, Clock, Copy, ArrowRight, Home, Gift, AlertTriangle, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState } from '../types';
-import { ADDITIONAL_SERVICES } from '../constants';
+import { chosenServiceNames } from '../constants';
 
 interface Props {
   state: OnboardingState;
@@ -135,7 +135,7 @@ const SuccessStep: React.FC<Props> = ({ state, onAmend }) => {
             <p className="text-sm text-gray-700 leading-relaxed">
               Your request for{' '}
               <span className="font-bold">
-                {ADDITIONAL_SERVICES.filter(s => state.requestedServices.includes(s.id)).map(s => s.name).join(', ')}
+                {chosenServiceNames(state).join(', ')}
               </span>{' '}
               will be set up by your branch once your account is opened. We will send you an SMS when it is ready.
             </p>

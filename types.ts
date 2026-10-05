@@ -35,6 +35,25 @@ export interface AccountType {
   isIFB?: boolean; // Interest-Free Banking product — the wizard switches to the green IFB theme
 }
 
+// An additional service from the bank's catalog (dashboard → Products & Services)
+export interface AdditionalService {
+  id: string;
+  name: string;
+  summary: string;
+  details: string[];
+  icon: string;
+  // When set, the customer must accept these terms (this version) to choose the service
+  termsTitle?: string;
+  termsText?: string;
+  termsVersion?: number;
+}
+
+// A frame captured during the live face check, sent to the server with the selfie
+export interface LivenessFrame {
+  action: 'mouth' | 'turn';
+  image: string; // base64 JPEG
+}
+
 export interface FaydaCustomerData {
   uin: string;
   fullName: { eng: string; amh: string };
@@ -95,7 +114,13 @@ export interface OnboardingState {
   existingAccountNumber: string;      // 16-digit account number, if they gave one
   existingCif: string;                // 7-digit CIF (entered, or taken from the account number)
   // Optional services, set up by the branch Personal Banker after the account is opened
-  requestedServices: string[];        // 'mobile_banking' | 'internet_banking' | 'debit_card'
+  requestedServices: string[];        // service ids from the catalog, e.g. 'mobile_banking'
+  selectedServices: { id: string; name: string; icon: string }[]; // the same services, for the review screens
+  serviceTermsAccepted: { id: string; version: number; acceptedAt: string }[];
+  // Live face check, verified by the Fayda backend (the signed result goes with the application)
+  faceVerificationToken: string;
+  livenessFrames: LivenessFrame[];
+  faceMatched: boolean | null;        // server verdict, for the review screen (null = not checked)
 }
 
 export enum Step {

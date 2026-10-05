@@ -90,6 +90,11 @@ const INITIAL_STATE: OnboardingState = {
   existingAccountNumber: '',
   existingCif: '',
   requestedServices: [],
+  selectedServices: [],
+  serviceTermsAccepted: [],
+  faceVerificationToken: '',
+  livenessFrames: [],
+  faceMatched: null,
 };
 
 // Sessions saved by an older version of the wizard: shift the step number past steps added
@@ -114,6 +119,15 @@ function upgradeSavedState(saved: OnboardingState): OnboardingState {
       requestedServices: [],
     };
   }
+  // Fields added later (service names, terms, live face check)
+  state = {
+    ...state,
+    selectedServices: state.selectedServices || [],
+    serviceTermsAccepted: state.serviceTermsAccepted || [],
+    faceVerificationToken: state.faceVerificationToken || '',
+    livenessFrames: state.livenessFrames || [],
+    faceMatched: state.faceMatched ?? null,
+  };
   return state;
 }
 
@@ -367,7 +381,7 @@ const App: React.FC = () => {
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)
-    <div className="min-h-screen" data-theme={isIfb ? 'ifb' : undefined}>
+    <div id="app-root" className="min-h-screen" data-theme={isIfb ? 'ifb' : undefined}>
       <Toaster position="top-center" richColors />
       {renderStep}
       {showResumeModal && savedSessionData && (

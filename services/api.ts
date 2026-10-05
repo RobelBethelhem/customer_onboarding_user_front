@@ -1,4 +1,4 @@
-import type { AccountTier, AccountType, Branch } from '../types';
+import type { AccountTier, AccountType, AdditionalService, Branch, LivenessFrame } from '../types';
 
 const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
 const DASHBOARD_URL = 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
@@ -72,6 +72,18 @@ export interface FaceVideoUploadResult {
   message?: string;
 }
 
+// Live face check verified by the server, from /api/face/verify-liveness
+export interface LivenessVerifyResult {
+  success: boolean;
+  passed: boolean;           // the actions were really done by one live person
+  matched: boolean;          // face matches the Fayda photo
+  similarity: number | null;
+  antiSpoofScore: number | null;
+  failed: string | null;     // which check did not pass
+  message: string;           // what to tell the customer
+  token: string;             // signed result, sent with the application
+}
+
 // Face comparison result from /api/face/compare
 export interface FaceCompareResult {
   success: boolean;
@@ -126,6 +138,10 @@ export const faydaService = {
   /** Compare selfie against Fayda ID photo — field names must match backend */
   compareFace: (selfieBase64: string, idPhotoBase64: string) =>
     postRequest<FaceCompareResult>('/api/face/compare', { selfieImage: selfieBase64, idPhoto: idPhotoBase64 }),
+
+  /** Live check: frames from the browser re-checked on the server, anti-spoof model, match with the Fayda photo */
+  verifyLiveness: (data: { selfie: string; frames: LivenessFrame[]; faydaPhoto: string }) =>
+    postRequest<LivenessVerifyResult>('/api/face/verify-liveness', data),
 
   submitOnboarding: (payload: any) =>
     postRequest<{ success: boolean; customerNumber?: string; customerId?: string; status: string; message?: string }>('/api/flexcube/create-customer', payload),
@@ -309,6 +325,16 @@ export const productService = {
   list: async (): Promise<AccountType[]> => {
     const res = await dashboardGet<{ success: boolean; data: CatalogProduct[] }>('/api/account-products');
     return (res.data || []).map(toAccountType);
+  },
+};
+
+// ========== Additional services (managed by KYC on the dashboard's Products & Services page) ==========
+
+export const additionalServicesService = {
+  /** Active services in the order KYC set; a service with terms must have them accepted */
+  list: async (): Promise<AdditionalService[]> => {
+    const res = await dashboardGet<{ success: boolean; data: AdditionalService[] }>('/api/additional-services');
+    return res.data || [];
   },
 };
 

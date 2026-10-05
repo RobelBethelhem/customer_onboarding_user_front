@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
 import { faydaService, formatRate } from '../services/api';
 import {
-  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, ADDITIONAL_SERVICES, isIfbAccountType,
+  OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, chosenServiceNames, isIfbAccountType,
 } from '../constants';
 
 interface Props {
@@ -103,8 +103,14 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         existingCustomer: state.hasExistingAccount === true,
         existingCif: state.hasExistingAccount ? state.existingCif : '',
         existingAccountNumber: state.hasExistingAccount ? state.existingAccountNumber : '',
-        // Mobile Banking / Internet Banking / Debit Card — set up by the branch after approval
+        // Additional services — set up by the branch after approval — and the terms accepted for them
         requestedServices: state.requestedServices || [],
+        serviceTermsAccepted: (state.serviceTermsAccepted || []).filter(a => (state.requestedServices || []).includes(a.id)),
+        // Live face check: the server's signed result and the frames it checked (the server, not
+        // this score, decides what the bank sees)
+        faceVerificationToken: state.faceVerificationToken || '',
+        livenessFrames: state.livenessFrames || [],
+        faceMatchScore: state.faceMatchScore || 0,
       };
       const result = await faydaService.submitOnboarding(payload);
       onUpdate({ result });
@@ -218,9 +224,11 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
             )}
             <div className="text-xs text-gray-500">
               <p className="font-semibold text-gray-700">
-                {state.faceVideoId ? 'Verification video captured' : 'No video captured'}
+                {state.faceMatched === true ? 'Live face check passed'
+                  : state.faceMatched === false ? 'Face check saved for review'
+                  : state.faceVideoId ? 'Verification video captured' : 'No video captured'}
               </p>
-              <p>Your video will be reviewed by the KYC team.</p>
+              <p>{state.faceMatched === true ? 'Your face matches your Fayda ID photo.' : 'Our KYC team will review your video.'}</p>
             </div>
           </div>
         </Section>
@@ -229,9 +237,12 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         <Section title="Additional Services" icon={<Smartphone className="w-4 h-4" />} onEdit={() => onEdit(Step.Services)}>
           {(state.requestedServices || []).length > 0 ? (
             <>
-              {ADDITIONAL_SERVICES.filter(s => state.requestedServices.includes(s.id)).map(s => (
-                <Row key={s.id} label={s.name} value="Requested" />
+              {chosenServiceNames(state).map(name => (
+                <Row key={name} label={name} value="Requested" />
               ))}
+              {(state.serviceTermsAccepted || []).some(a => state.requestedServices.includes(a.id)) && (
+                <p className="text-xs text-gray-500">You accepted the terms and conditions of the services that have them.</p>
+              )}
               <p className="text-xs text-gray-500">Set up by your branch after your account is opened.</p>
             </>
           ) : (
