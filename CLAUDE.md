@@ -13,6 +13,7 @@ Zemen Bank Customer Onboarding Web App — a multi-step wizard for opening premi
 ```bash
 npm install          # Install dependencies
 npm run dev          # Dev server at http://localhost:3000 (host 0.0.0.0)
+npm run dev:demo     # Same, with sample answers instead of the bank's servers (dev/mockApi.ts): try every screen locally
 npm run build        # Production build (output: dist/)
 npm run preview      # Preview production build
 ```
