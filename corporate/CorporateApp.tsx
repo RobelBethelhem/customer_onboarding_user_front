@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, Users, X } from 'lucide-react';
 import type { OnboardingState } from '../types';
 import { INITIAL_STATE, NO_FACE_CHECK } from '../initialState';
 import { isIfbAccountType } from '../constants';
@@ -15,9 +15,9 @@ import FaceVerificationStep from '../steps/FaceVerificationStep';
 import BranchSelectionStep from '../steps/BranchSelectionStep';
 import AccountTypeStep from '../steps/AccountTypeStep';
 import { CorporateStep, documentsFor } from './types';
-import type { CorporateCatalog, CorporateState, UploadedFile } from './types';
+import type { CorporateCatalog, CorporateState, GuestFlow, PersonForm, Role, UploadedFile } from './types';
 import { corporateService, identityPayload, rememberApplication, CorporateApiError } from './api';
-import { EMPTY_ORGANIZATION, EMPTY_ADDRESS, EKYC_MAX_AGE_MS, FACE_MAX_AGE_MS, normalizeMobile, entriesOf } from './constants';
+import { EMPTY_ORGANIZATION, EMPTY_ADDRESS, EKYC_MAX_AGE_MS, FACE_MAX_AGE_MS, normalizeMobile, entriesOf, ROLE_LABELS } from './constants';
 import { firstIncomplete } from './validation';
 import { StepFrame } from './ui';
 import IntroStep from './steps/IntroStep';
@@ -52,8 +52,16 @@ const STEP_NAMES: Record<number, string> = {
   [CorporateStep.Documents]: 'Documents', [CorporateStep.FinalReview]: 'Review & submit',
 };
 
+/** This application's id at the bank while it is filled in (links its people together) */
+const newGroupId = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(18));
+  return btoa(String.fromCharCode(...Array.from(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
 const freshState = (): CorporateState => ({
   currentStep: CorporateStep.Intro,
+  groupId: newGroupId(),
+  guest: null,
   identity: { ...INITIAL_STATE },
   verifiedAt: 0,
   faceCheckedAt: 0,
@@ -122,6 +130,36 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [state]);
 
+  // Ticks: ask the bank which people have verified from their link (while the form is open)
+  const pendingKey = state.people.filter(p => p.status !== 'verified' && p.verificationId && !p.lost).map(p => p.verificationId).join(',');
+  const watching = !!pendingKey && state.currentStep >= CorporateStep.People && state.currentStep <= CorporateStep.FinalReview;
+  useEffect(() => {
+    if (!watching) return;
+    let stopped = false;
+    const check = async () => {
+      const pending = state.people.filter(p => p.status !== 'verified' && p.verificationId && !p.lost);
+      try {
+        const answers = await corporateService.peopleStatus(pending.map(p => ({ id: p.verificationId, key: p.verificationKey })));
+        if (stopped) return;
+        const nowVerified: string[] = [];
+        setState(prev => ({
+          ...prev,
+          people: prev.people.map(p => {
+            const a = answers.find(x => x.verificationId === p.verificationId);
+            if (!a || p.status === 'verified') return p;
+            if (a.found === false) return { ...p, lost: true };
+            if (a.status === 'verified') { nowVerified.push(a.fullName); return { ...p, status: 'verified', fullName: a.fullName, expired: false }; }
+            return { ...p, expired: a.expired };
+          }),
+        }));
+        nowVerified.forEach(name => toast.success(`✓ ${name} has verified with Fayda`));
+      } catch { /* try again on the next round */ }
+    };
+    check();
+    const timer = setInterval(check, 6000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [watching, pendingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const update = useCallback((u: Partial<CorporateState>) => setState(prev => ({ ...prev, ...u })), []);
 
@@ -182,6 +220,62 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
     goTo(step);
   }, [goTo]);
 
+  // ── Another person verifying on this phone (they are with the applicant) ───────────────
+  const startGuest = useCallback((roles: Role[]) => {
+    setState(prev => ({ ...prev, guest: { roles, phase: 'intro', identity: { ...INITIAL_STATE } } }));
+    scrollTop();
+  }, []);
+  const setGuest = useCallback((u: Partial<GuestFlow>) => {
+    setState(prev => (prev.guest ? { ...prev, guest: { ...prev.guest, ...u } } : prev));
+    scrollTop();
+  }, []);
+  const updateGuestIdentity = useCallback((u: Partial<OnboardingState>) => {
+    setState(prev => {
+      if (!prev.guest) return prev;
+      const identity = { ...prev.guest.identity, ...u, ...('ekycToken' in u ? NO_FACE_CHECK : {}) };
+      return { ...prev, guest: { ...prev.guest, identity } };
+    });
+  }, []);
+  const cancelGuest = useCallback(() => { setState(prev => ({ ...prev, guest: null })); scrollTop(); }, []);
+  const [guestError, setGuestError] = useState('');
+
+  /** The person finished the face check: the bank checks and keeps their verification */
+  const saveGuest = async () => {
+    const guest = state.guest;
+    if (!guest) return;
+    setGuestError('');
+    setGuest({ phase: 'saving' });
+    try {
+      const r = await corporateService.addPerson({
+        ekycToken: state.identity.ekycToken || '', groupId: state.groupId, mode: 'with_applicant', roles: guest.roles,
+        organizationName: state.organization.name, categoryName: catalog?.categories.find(c => c.id === state.organization.categoryId)?.name || '',
+        applicantPhone: normalizeMobile(state.applicant.phone), identity: identityPayload(guest.identity),
+      });
+      const person: PersonForm = {
+        key: Math.random().toString(36).slice(2, 10), mode: 'with_applicant', roles: guest.roles, name: '', phone: '',
+        verificationId: r.verification.verificationId, verificationKey: r.key, link: '', status: 'verified',
+        fullName: r.verification.fullName, signature: null,
+      };
+      setState(prev => ({ ...prev, guest: null, people: [...prev.people, person] }));
+      toast.success(`✓ ${r.verification.fullName} is verified. You can take your phone back.`);
+      scrollTop();
+    } catch (e: any) {
+      const err = e as CorporateApiError;
+      if (err.status === 401 && /your fayda verification/i.test(err.message)) {
+        // the applicant's own verification expired: they verify again, then come back here
+        toast.error(err.message);
+        setReturnAfterFace(CorporateStep.People);
+        setState(prev => withoutVerification({ ...prev, guest: null }, CorporateStep.FaydaId));
+      } else if (err.status === 409 || err.status === 401) {
+        // e.g. the applicant's own Fayda ID, someone already added, or their result expired: start again
+        toast.error(err.message);
+        setState(prev => (prev.guest ? { ...prev, guest: { ...prev.guest, phase: 'intro', identity: { ...INITIAL_STATE } } } : prev));
+      } else {
+        setGuestError(err.message || 'The verification could not be saved.');
+      }
+    }
+  };
+
   // ── Resume ──────────────────────────────────────────────────────────────────────────────
   const handleStart = () => {
     if (saved) setShowResume(true);
@@ -193,9 +287,13 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
     const base = freshState();
     let s: CorporateState = {
       ...base, ...saved.state,
+      groupId: saved.state.groupId || base.groupId,
+      guest: saved.state.guest || null,
       identity: { ...INITIAL_STATE, ...saved.state.identity },
       organization: { ...base.organization, ...saved.state.organization },
       applicant: { ...base.applicant, ...saved.state.applicant },
+      // people saved by an earlier version (no verification at the bank) are added again
+      people: (saved.state.people || []).filter(p => p.verificationId),
       result: null,
     };
     if (s.currentStep > CorporateStep.Otp && !ekycFresh(s)) {
@@ -272,9 +370,10 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
       accountClassCode: identity.selectedTier?.code || '',
       signingRule: state.signingRule,
       signingRuleOther: state.signingRule === 'other' ? state.signingRuleOther.trim() : '',
+      groupId: state.groupId,
       people: state.people.map(p => ({
-        fullName: p.fullName.trim(),
-        phone: normalizeMobile(p.phone),
+        verificationId: p.verificationId,
+        verificationKey: p.verificationKey,
         roles: p.roles,
         signature: fileRef(p.signature, p.roles.includes('signatory')),
       })),
@@ -297,7 +396,11 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
     } catch (e: any) {
       const err = e as CorporateApiError;
       toast.error(err.message || 'The application could not be sent. Please try again.');
-      if (err.fileId) {
+      if (err.verificationId) {
+        // A person's record expired or was removed at the bank: add them again
+        setState(prev => ({ ...prev, people: prev.people.map(p => (p.verificationId === err.verificationId ? { ...p, lost: true } : p)) }));
+        editStep(CorporateStep.People);
+      } else if (err.fileId) {
         // An upload expired or was already used: ask for that one again
         setState(prev => ({
           ...prev,
@@ -323,8 +426,55 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
   const identityProps = { state: state.identity, onUpdate: updateIdentity, onNext: nextStep, onBack: prevStep };
 
   const needsCatalog = step >= CorporateStep.Category && step <= CorporateStep.FinalReview;
+  const guest = state.guest;
   let screen: React.ReactNode;
-  if (needsCatalog && !catalog) {
+  if (guest && step === CorporateStep.People) {
+    const gProps = { state: guest.identity, onUpdate: updateGuestIdentity };
+    const roleText = guest.roles.map(r => ROLE_LABELS[r]).join(' & ');
+    const banner = (
+      <div className="px-4 py-2.5 bg-gray-900 text-white text-xs font-semibold flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 min-w-0"><Users className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Verifying another person · {roleText}</span></span>
+        <button onClick={cancelGuest} className="flex items-center gap-1 text-white/70 hover:text-white flex-shrink-0"><X className="w-3.5 h-3.5" /> Cancel</button>
+      </div>
+    );
+    let inner: React.ReactNode;
+    switch (guest.phase) {
+      case 'intro':
+        inner = (
+          <StepFrame title="Hand the phone to them" subtitle={`They join ${state.organization.name || 'the application'} as ${roleText}`}
+            onBack={cancelGuest} backLabel="Cancel" onNext={() => setGuest({ phase: 'fayda' })} nextLabel="Start">
+            <div className="p-4 rounded-2xl bg-brand-50/40 border border-brand/10 text-sm text-gray-700 space-y-2">
+              <p>The person verifies with <b>their own</b> Fayda ID:</p>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>their Fayda ID number, and the OTP sent to <b>their</b> phone</li>
+                <li>their details as Fayda has them</li>
+                <li>a short live face check with this phone's camera</li>
+              </ul>
+              <p className="text-xs text-gray-500">The name on the account comes from Fayda. When they finish, you get your phone back here.</p>
+            </div>
+          </StepFrame>
+        );
+        break;
+      case 'fayda': inner = <FaydaIdStep {...gProps} onNext={() => setGuest({ phase: 'otp' })} onBack={() => setGuest({ phase: 'intro' })} />; break;
+      case 'otp': inner = <OtpVerificationStep {...gProps} onNext={() => setGuest({ phase: 'review' })} onBack={() => setGuest({ phase: 'fayda' })} />; break;
+      case 'review': inner = <DataReviewStep state={guest.identity} onNext={() => setGuest({ phase: 'face' })} onBack={() => setGuest({ phase: 'otp' })} />; break;
+      case 'face': inner = <FaceVerificationStep {...gProps} onNext={saveGuest} onBack={() => setGuest({ phase: 'review' })} />; break;
+      default:
+        inner = (
+          <StepFrame title="Saving the verification" onBack={guestError ? cancelGuest : undefined} backLabel="Cancel"
+            onNext={guestError ? saveGuest : undefined} nextLabel="Try again">
+            {guestError ? (
+              <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 flex gap-3">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" /> {guestError}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 py-16 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /> The bank is checking the verification…</div>
+            )}
+          </StepFrame>
+        );
+    }
+    screen = <div className="flex flex-col h-full">{banner}<div className="flex-1 flex flex-col">{inner}</div></div>;
+  } else if (needsCatalog && !catalog) {
     screen = (
       <StepFrame title="Business Account" onBack={prevStep}>
         {catalogError ? (
@@ -356,7 +506,7 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
       case CorporateStep.Contact: screen = <ContactStep {...stepProps} />; break;
       case CorporateStep.Branch: screen = <BranchSelectionStep {...identityProps} />; break;
       case CorporateStep.Account: screen = <AccountTypeStep {...identityProps} audience="organization" />; break;
-      case CorporateStep.People: screen = <PeopleStep {...stepProps} catalog={catalog!} />; break;
+      case CorporateStep.People: screen = <PeopleStep {...stepProps} catalog={catalog!} onVerifyHere={startGuest} />; break;
       case CorporateStep.Documents: screen = <DocumentsStep {...stepProps} catalog={catalog!} />; break;
       case CorporateStep.FinalReview:
         screen = (

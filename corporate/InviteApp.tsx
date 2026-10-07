@@ -129,11 +129,14 @@ const InviteApp: React.FC<{ token: string; onHome: () => void }> = ({ token, onH
   if (step === InviteStep.Done && result) {
     screen = message(<CheckCircle2 className="w-8 h-8" />, `Thank you, ${result.fullName.split(' ')[0]}`, (
       <>
-        You are verified for the business account application of <b>{result.organizationName}</b> ({result.applicationId}).
+        You are verified for the business account application of <b>{result.organizationName}</b>
+        {result.applicationId ? ` (${result.applicationId})` : ''}.
         <br /><br />
-        {result.allVerified
-          ? 'Everyone has now verified — the application goes to our team for review.'
-          : 'We are waiting for the others to verify; then our team reviews the application.'}
+        {result.submitted === false
+          ? `${result.applicantName || 'The person who applied'} now sees on their screen that you have verified.`
+          : result.allVerified
+            ? 'Everyone has now verified — the application goes to our team for review.'
+            : 'We are waiting for the others to verify; then our team reviews the application.'}
       </>
     ), 'bg-green-50 text-green-500');
   } else if (loadError) {
@@ -165,11 +168,11 @@ const InviteApp: React.FC<{ token: string; onHome: () => void }> = ({ token, onH
                 <div className="p-2.5 rounded-xl bg-brand text-white"><Building2 className="w-5 h-5" /></div>
                 <div className="min-w-0">
                   <div className="font-bold text-gray-800">{info.organizationName}</div>
-                  <div className="text-xs text-gray-500">{info.categoryName} · {info.applicationId}</div>
+                  <div className="text-xs text-gray-500">{[info.categoryName, info.applicationId].filter(Boolean).join(' · ')}</div>
                 </div>
               </div>
               <p className="text-sm text-gray-700">
-                Dear <b>{info.fullName}</b>, {info.applicantName || 'the representative'} added you as <b>{info.roleText}</b> of
+                {info.fullName ? <>Dear <b>{info.fullName}</b>, </> : 'Hello, '}{info.applicantName || 'the representative'} added you as <b>{info.roleText}</b> of
                 this organization on its account application. The bank needs to verify your identity.
               </p>
             </div>
@@ -201,7 +204,7 @@ const InviteApp: React.FC<{ token: string; onHome: () => void }> = ({ token, onH
               <Row label="Organization" value={info.organizationName} />
               <Row label="Application" value={info.applicationId} />
               <Row label="Your role" value={info.roleText} />
-              <Row label="Name given by the applicant" value={info.fullName} />
+              {info.fullName && <Row label="Name given by the applicant" value={info.fullName} />}
             </div>
             <p className="text-xs text-gray-500">
               By confirming, you agree that Zemen Bank uses your Fayda identity for this organization's account

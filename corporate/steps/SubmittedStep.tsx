@@ -12,6 +12,7 @@ interface Props {
 /** Application received: its number, who still verifies, where to follow it */
 const SubmittedStep: React.FC<Props> = ({ result, onOpenStatus, onHome }) => {
   const others = result.view.people.filter(p => !p.isApplicant);
+  const notYet = others.filter(p => !p.verified).length;
   const waiting = result.status === 'awaiting_verification';
 
   return (
@@ -34,8 +35,8 @@ const SubmittedStep: React.FC<Props> = ({ result, onOpenStatus, onHome }) => {
             <div className="p-4 rounded-2xl bg-blue-50 text-sm text-blue-800 flex gap-3">
               <MessageSquare className="w-5 h-5 flex-shrink-0" />
               <span>
-                We sent an SMS link to {others.length === 1 ? 'this person' : `these ${others.length} people`}. Each verifies with
-                their own Fayda ID. The application goes to our team once everyone has verified.
+                {notYet === 1 ? 'One person has' : `${notYet} people have`} not verified yet. They use the link we sent to their
+                phone; the application goes to our team once everyone has verified.
               </span>
             </div>
             <ul className="space-y-2">
@@ -43,11 +44,17 @@ const SubmittedStep: React.FC<Props> = ({ result, onOpenStatus, onHome }) => {
                 <li key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100">
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-gray-800 truncate">{p.fullName}</div>
-                    <div className="text-xs text-gray-400">{roleText(p.roles)} · {p.phone}</div>
+                    <div className="text-xs text-gray-400">{[roleText(p.roles), p.phone].filter(Boolean).join(" · ")}</div>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-600 flex-shrink-0">
-                    <Clock className="w-3 h-3" /> Waiting
-                  </span>
+                  {p.verified ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-green-600 flex-shrink-0">
+                      <CheckCircle2 className="w-3 h-3" /> Verified
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-600 flex-shrink-0">
+                      <Clock className="w-3 h-3" /> Waiting
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

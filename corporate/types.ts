@@ -63,17 +63,60 @@ export interface OrganizationForm {
   correspondenceAddress: Address;
 }
 
-/** Another signatory or director; they verify themselves from the SMS link */
+/**
+ * Another signatory or director. They verify with their own Fayda ID while the application is
+ * filled in: with the applicant, on this phone ('with_applicant'), or on their own phone from an
+ * SMS link ('link') — the tick appears here when they finish.
+ */
 export interface PersonForm {
   key: string;
-  fullName: string;
-  phone: string;
+  mode: 'with_applicant' | 'link';
   roles: Role[];
+  name: string;              // link: how the applicant calls them (for the SMS), may be empty
+  phone: string;             // link: the mobile the link goes to
+  verificationId: string;    // the bank's record of this person
+  verificationKey: string;
+  link: string;              // link: to copy or share
+  status: 'pending' | 'verified';
+  fullName: string;          // as verified with Fayda
+  sentAt?: string;
+  expired?: boolean;
+  lost?: boolean;            // the bank no longer has the record (expired or removed): add again
   signature: UploadedFile | null;
 }
 
+/** Another person verifying on the applicant's phone right now (Fayda ID → OTP → review → face) */
+export interface GuestFlow {
+  roles: Role[];
+  phase: 'intro' | 'fayda' | 'otp' | 'review' | 'face' | 'saving';
+  identity: OnboardingState;
+}
+
+/** The bank's answer about one person (POST /verifications) */
+export interface VerificationView {
+  verificationId: string;
+  mode: 'with_applicant' | 'link';
+  status: 'pending' | 'verified';
+  fullName: string;
+  enteredName: string;
+  roles: Role[];
+  phone: string;
+  sentAt?: string;
+  sentCount: number;
+  smsSent?: boolean;
+  expiresAt?: string;
+  expired: boolean;
+  found?: boolean;
+}
+
+/** Display name of another person: Fayda name once verified, else what the applicant gave */
+export const personName = (p: PersonForm, index?: number) =>
+  p.fullName || p.name || (p.phone ? `Mobile ${p.phone}` : index !== undefined ? `Person ${index + 2}` : 'Person');
+
 export interface CorporateState {
   currentStep: number;
+  groupId: string;               // this application's id at the bank while it is filled in
+  guest: GuestFlow | null;
   identity: OnboardingState;     // the applicant's Fayda verification and face check, branch and account
   verifiedAt: number;            // when the applicant verified with Fayda (the eKYC result is valid 7 days)
   faceCheckedAt: number;         // when the live face check was done (its result is valid 48 hours)
@@ -185,6 +228,7 @@ export interface InviteInfo {
   expired: boolean;
   expiresAt?: string;
   open: boolean;
+  submitted?: boolean; // false: the link was sent before the application was submitted
 }
 
 export interface InviteResult {
@@ -192,4 +236,6 @@ export interface InviteResult {
   organizationName: string;
   applicationId: string;
   allVerified: boolean;
+  submitted?: boolean;
+  applicantName?: string;
 }

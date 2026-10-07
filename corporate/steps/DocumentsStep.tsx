@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Info } from 'lucide-react';
 import type { CorporateCatalog, CorporateState } from '../types';
-import { documentsFor } from '../types';
+import { documentsFor, personName } from '../types';
 import { validateDocuments } from '../validation';
 import { StepFrame } from '../ui';
 import FileUpload from '../FileUpload';
@@ -62,7 +62,7 @@ const DocumentsStep: React.FC<Props> = ({ state, catalog, update, onNext, onBack
               onChange={signature => update({ applicant: { ...state.applicant, signature } })} />
           )}
           {signatories.map(({ p, i }) => (
-            <FileUpload key={p.key} kind="signature" label={p.fullName || `Person ${i + 2}`}
+            <FileUpload key={p.key} kind="signature" label={personName(p, i)}
               required={signatureRequired} value={p.signature} auth={auth} maxFileMb={maxFileMb} error={errors[`sig.${i}`]}
               onChange={signature => update({ people: state.people.map((x, j) => (j === i ? { ...x, signature } : x)) })} />
           ))}

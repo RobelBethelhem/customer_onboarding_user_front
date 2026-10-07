@@ -1,5 +1,5 @@
 import type { CorporateCatalog, CorporateState, OrganizationForm } from './types';
-import { CorporateStep, documentsFor } from './types';
+import { CorporateStep, documentsFor, personName } from './types';
 import { EMAIL, normalizeMobile } from './constants';
 
 // Same checks as the bank's server, so the customer sees them on the right screen.
@@ -46,13 +46,9 @@ export function validatePeople(state: CorporateState, catalog: CorporateCatalog)
   const applicantPhone = normalizeMobile(state.applicant.phone);
   if (!applicantPhone) e['applicant.phone'] = 'Enter your mobile number (09… or 07…)';
   if (state.people.length + 1 > catalog.rules.maxPeople) e.people = `At most ${catalog.rules.maxPeople} people, including you`;
-  const phones = new Set(applicantPhone ? [applicantPhone] : []);
   state.people.forEach((p, i) => {
-    if (p.fullName.trim().split(/\s+/).length < 2) e[`people.${i}.fullName`] = 'Enter the full name (first and father’s name at least)';
-    const phone = normalizeMobile(p.phone);
-    if (!phone) e[`people.${i}.phone`] = 'Enter a valid mobile number (09… or 07…)';
-    else if (phones.has(phone)) e[`people.${i}.phone`] = 'Each person needs their own mobile number — the verification link is sent to it';
-    else phones.add(phone);
+    if (!p.verificationId || p.lost) e[`people.${i}`] = `${personName(p, i)}: this person is no longer on the application — remove them and add them again`;
+    else if (p.mode === 'link' && normalizeMobile(p.phone) === applicantPhone) e[`people.${i}`] = `${personName(p, i)}: the link went to your own mobile number — remove them and add them with theirs`;
     if (!p.roles.length) e[`people.${i}.roles`] = 'Choose signatory, director or both';
   });
   const signatories = (state.applicant.roles.includes('signatory') ? 1 : 0) + state.people.filter(p => p.roles.includes('signatory')).length;

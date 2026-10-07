@@ -1,20 +1,22 @@
 import { API_BASE_URL } from '../services/api';
 import type { OnboardingState } from '../types';
 import type {
-  ApplicationView, CorporateCatalog, InviteInfo, InviteResult, SubmitResult, UploadedFile,
+  ApplicationView, CorporateCatalog, InviteInfo, InviteResult, Role, SubmitResult, UploadedFile, VerificationView,
 } from './types';
 
 // Business account API of the dashboard, reached through the Fayda backend (api1)
 const BASE = `${API_BASE_URL}/api/corporate`;
 
-/** An error to show the customer; `fileId` names an upload that has to be done again */
+/** An error to show the customer; `fileId` / `verificationId` name what has to be done again */
 export class CorporateApiError extends Error {
   status: number;
   fileId?: string;
-  constructor(message: string, status: number, fileId?: string) {
+  verificationId?: string;
+  constructor(message: string, status: number, fileId?: string, verificationId?: string) {
     super(message);
     this.status = status;
     this.fileId = fileId;
+    this.verificationId = verificationId;
   }
 }
 
@@ -34,7 +36,8 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
     throw new CorporateApiError(
       data.error || data.message || `Request failed with status ${response.status}`,
       response.status,
-      data.fileId || undefined
+      data.fileId || undefined,
+      data.verificationId || undefined
     );
   }
   return data.data as T;
@@ -62,6 +65,28 @@ export const corporateService = {
     call<UploadedFile>('POST', '/files', { kind, fileName, data, ...auth }),
 
   submit: (payload: unknown) => call<SubmitResult>('POST', '/applications', payload),
+
+  /**
+   * A signatory or director, while the application is filled in: verified with the applicant
+   * (their identity from this phone) or sent an SMS link. Needs the applicant's eKYC result.
+   */
+  addPerson: (body: {
+    ekycToken: string; groupId: string; mode: 'with_applicant' | 'link'; roles: Role[];
+    organizationName: string; categoryName: string; applicantPhone: string;
+    phone?: string; name?: string; identity?: ReturnType<typeof identityPayload>;
+  }) => call<{ verification: VerificationView; key: string; link?: string }>('POST', '/verifications', body),
+
+  /** Which people have verified (for the ticks) */
+  peopleStatus: (items: { id: string; key: string }[]) =>
+    call<VerificationView[]>('POST', '/verifications', { action: 'status', items }),
+
+  /** A new SMS link for a person who has not verified yet */
+  resendLink: (id: string, key: string) =>
+    call<{ verification: VerificationView; link: string }>('POST', `/verifications/${encodeURIComponent(id)}`, { key, action: 'resend' }),
+
+  /** The person was removed from the application: their link stops working */
+  removePerson: (id: string, key: string) =>
+    call<{ cancelled: boolean }>('POST', `/verifications/${encodeURIComponent(id)}`, { key, action: 'cancel' }),
 
   /** The applicant's status page */
   status: (applicationId: string, key: string) =>

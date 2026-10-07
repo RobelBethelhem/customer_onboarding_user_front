@@ -1,7 +1,7 @@
 import React from 'react';
 import { Building2, MapPin, Wallet, Users, FileText, User, ShieldCheck, AlertTriangle, Pencil } from 'lucide-react';
 import type { CorporateCatalog, CorporateState } from '../types';
-import { CorporateStep, documentsFor } from '../types';
+import { CorporateStep, documentsFor, personName } from '../types';
 import { INDUSTRIES } from '../../constants';
 import { SOURCES_OF_FUNDS, SIGNING_RULES, roleText, normalizeMobile } from '../constants';
 import { StepFrame, Section, Row, toDataUri } from '../ui';
@@ -89,12 +89,15 @@ const CorporateReviewStep: React.FC<Props> = ({ state, catalog, update, onEdit, 
       <Section title="Signatories & Directors" icon={<Users className="w-3.5 h-3.5" />} action={edit(CorporateStep.People)}>
         <Row label={`${id.faydaData?.fullName.eng || 'You'} (you)`} value={roleText(state.applicant.roles)} />
         {state.people.map(p => (
-          <Row key={p.key} label={p.fullName} value={`${roleText(p.roles)} · ${normalizeMobile(p.phone)}`} />
+          <Row key={p.key} label={personName(p)}
+            value={<span className={p.status === 'verified' ? 'text-green-600' : 'text-amber-600'}>
+              {roleText(p.roles)} · {p.status === 'verified' ? '✓ Verified' : 'Waiting for the link'}
+            </span>} />
         ))}
         <Row label="Signing rule" value={state.signingRule === 'other' ? state.signingRuleOther : rule?.label} />
-        {state.people.length > 0 && (
+        {state.people.some(p => p.status !== 'verified') && (
           <p className="text-xs text-blue-600 pt-1">
-            {state.people.length === 1 ? 'This person gets' : `These ${state.people.length} people get`} an SMS link to verify with Fayda.
+            You can submit now: the application goes to the bank once everyone has verified from their link.
           </p>
         )}
       </Section>
@@ -108,7 +111,7 @@ const CorporateReviewStep: React.FC<Props> = ({ state, catalog, update, onEdit, 
           <Row label="Your signature" value={state.applicant.signature ? '✓ Uploaded' : <span className="text-gray-300 font-normal">Not uploaded</span>} />
         )}
         {state.people.filter(p => p.roles.includes('signatory')).map(p => (
-          <Row key={p.key} label={`Signature — ${p.fullName}`}
+          <Row key={p.key} label={`Signature — ${personName(p)}`}
             value={p.signature ? '✓ Uploaded' : <span className="text-gray-300 font-normal">Not uploaded</span>} />
         ))}
       </Section>

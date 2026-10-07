@@ -16,7 +16,7 @@ interface Props {
 const HOW_IT_WORKS = [
   { icon: <ShieldCheck className="w-5 h-5" />, title: 'Verify yourself', text: 'With your Fayda ID (OTP) and a short live face check.' },
   { icon: <Building2 className="w-5 h-5" />, title: 'The organization', text: 'Its details, address, branch and the account you want.' },
-  { icon: <Users className="w-5 h-5" />, title: 'Signatories and directors', text: 'Each gets an SMS link and verifies with their own Fayda ID.' },
+  { icon: <Users className="w-5 h-5" />, title: 'Signatories and directors', text: 'Each verifies with their own Fayda ID — with you on this phone, or on their own phone from a link we send.' },
   { icon: <FileCheck2 className="w-5 h-5" />, title: 'Documents and review', text: 'Upload the documents; our team reviews and opens the account.' },
 ];
 

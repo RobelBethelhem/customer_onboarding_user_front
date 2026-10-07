@@ -1,7 +1,8 @@
 /**
  * DEMO MODE — local only (`npm run dev:demo`). Answers the web app's calls to the bank's servers
  * (api1 / api2) with sample data, so every screen can be tried on this computer without the
- * Fayda backend or the dashboard. Nothing is sent anywhere: any Fayda ID and any 6-digit OTP work,
+ * Fayda backend or the dashboard. Nothing is sent anywhere: any Fayda ID and any 6-digit OTP work
+ * (each Fayda ID number gives its own sample person — use different numbers for different people),
  * uploads and applications stay in this browser (localStorage). A small panel at the bottom
  * plays the bank's part (KYC returns / approves, the SMS verification links).
  *
@@ -12,7 +13,11 @@ import { BRANCHES } from '../constants';
 type Json = Record<string, any>;
 const STORE = 'zemen-demo-applications';
 const FILES = 'zemen-demo-files';
-const APPLICANT_NAME = 'HIRUT ABEBE WOLDE';
+const VERIFS = 'zemen-demo-verifications';
+const SAMPLE_NAMES = [
+  'HIRUT ABEBE WOLDE', 'KEBEDE TESFAYE AYANA', 'CHALTU GEMECHU DIDA', 'DAWIT ALEMU GIRMA', 'SELAMAWIT BEKELE HAILE',
+  'YONAS MENGISTU TADESSE', 'MERON ASFAW KEBEDE', 'ABDI MOHAMMED YUSUF', 'TIGIST HAILU MAMO', 'BEREKET GIRMA TOLA',
+];
 const DAY = 24 * 60 * 60 * 1000;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -126,12 +131,21 @@ function samplePhoto(): string {
   return photoCache;
 }
 
-/** Who verifies with Fayda: on a verification link, the invited person; otherwise the applicant */
-function currentPerson() {
-  const token = new URLSearchParams(location.search).get('invite');
-  const found = token ? findInvite(token) : null;
-  const name = found ? found.person.fullName.toUpperCase() : APPLICANT_NAME;
-  return { name, phone: found ? found.person.rawPhone : '0911000011' };
+/** The sample person a Fayda ID number stands for: each new number gets the next unused sample
+ *  name (remembered in this browser), so different numbers are always different people */
+function personFor(fan: string) {
+  const digits = String(fan || '').replace(/\D/g, '');
+  const names = load('zemen-demo-names');
+  if (!names[digits]) {
+    const used = new Set(Object.values(names));
+    names[digits] = SAMPLE_NAMES.find(n => !used.has(n)) || `SAMPLE PERSON ${digits.slice(-4)}`;
+    save('zemen-demo-names', names);
+  }
+  return { name: names[digits] as string, uin: `DEMO${digits.slice(-12).padStart(12, '0')}`, phone: `0911${digits.slice(-6).padStart(6, '0')}` };
+}
+const ekycTokenFor = (p: { name: string; uin: string }) => `demo-ekyc.${btoa(JSON.stringify({ name: p.name, uin: p.uin }))}`;
+function readEkyc(token: unknown): { name: string; uin: string } | null {
+  try { return JSON.parse(atob(String(token || '').split('.')[1] || '')); } catch { return null; }
 }
 
 // ─── Applications kept in this browser ───────────────────────────────────────────────────────
@@ -142,12 +156,51 @@ const view = (a: Json) => ({
   people: a.people.map((p: Json) => ({ ...p, rawPhone: undefined, phone: mask(p.rawPhone) })),
   rules: { maxFileMb: CATALOG.rules.maxFileMb, signatureRequired: CATALOG.rules.signatureRequired },
 });
-const inviteToken = (a: Json, p: Json) => `demo-${a.applicationId}-${p.id}-${a.accessKey.slice(0, 6)}`;
+const inviteToken = (a: Json, p: Json) => p.inviteToken || `demo-${a.applicationId}-${p.id}-${a.accessKey.slice(0, 6)}`;
 function findInvite(token: string) {
-  const m = token.match(/^demo-(ZMC-\d+)-(P\d+)-/);
-  const a = m ? apps()[m[1]] : null;
-  const person = a?.people.find((p: Json) => p.id === m![2]);
-  return a && person && inviteToken(a, person) === token ? { app: a, person } : null;
+  for (const a of Object.values(apps()) as Json[]) {
+    const person = a.people.find((p: Json) => !p.isApplicant && inviteToken(a, p) === token);
+    if (person) return { app: a, person };
+  }
+  return null;
+}
+
+// People verifying while the application is filled in (with the applicant, or from a link)
+const verifs = () => load(VERIFS);
+const putVerif = (v: Json) => { const all = verifs(); all[v.verificationId] = v; save(VERIFS, all); };
+const verifView = (v: Json) => ({
+  verificationId: v.verificationId, mode: v.mode, status: v.verified ? 'verified' : 'pending', fullName: v.verified ? v.fullName : '',
+  enteredName: v.enteredName, roles: v.roles, phone: mask(v.phone), sentAt: v.sentAt, sentCount: v.sentCount || 0, smsSent: true,
+  expiresAt: v.expiresAt, expired: false,
+});
+const findEarly = (token: string) =>
+  (Object.values(verifs()) as Json[]).find(v => v.mode === 'link' && v.token === token && !v.cancelled && !v.applicationId) || null;
+const linkFor = (token: string) => `${location.origin}${location.pathname}?invite=${token}`;
+
+function addPerson(body: Json) {
+  const me = readEkyc(body.ekycToken);
+  if (!me) return err('Your Fayda verification has expired. Please verify with Fayda again.', 401);
+  const siblings = (Object.values(verifs()) as Json[]).filter(v => v.groupId === body.groupId && !v.cancelled && !v.applicationId);
+  if (siblings.length + 2 > CATALOG.rules.maxPeople) return err(`An application can have at most ${CATALOG.rules.maxPeople} people, including you`);
+  const base = {
+    verificationId: `V${rand(16)}`, key: rand(16), groupId: body.groupId, mode: body.mode, roles: body.roles,
+    applicantName: me.name, applicantUin: me.uin, organizationName: body.organizationName, categoryName: body.categoryName, applicationId: '', cancelled: false,
+  };
+  if (body.mode === 'with_applicant') {
+    const who = readEkyc(body.identity?.ekycToken);
+    if (!who) return err('Please verify with Fayda again.', 401);
+    if (who.uin === me.uin) return err('This is your own Fayda ID. The other person must verify with their own Fayda ID.', 409);
+    if (siblings.some(v => v.uin === who.uin)) return err(`${who.name} is already on this application.`, 409);
+    const v = { ...base, phone: '', enteredName: '', verified: true, fullName: who.name, uin: who.uin };
+    putVerif(v);
+    return ok({ verification: verifView(v), key: v.key }, 201);
+  }
+  if (siblings.some(v => v.phone === body.phone)) return err('This mobile number is already used for another person on this application.');
+  const token = `demo-link-${rand(20)}`;
+  const v = { ...base, phone: body.phone, enteredName: body.name || '', verified: false, token, sentAt: new Date().toISOString(),
+    sentCount: 1, expiresAt: new Date(Date.now() + 14 * DAY).toISOString() };
+  putVerif(v);
+  return ok({ verification: verifView(v), key: v.key, link: linkFor(token) }, 201);
 }
 const roleText = (roles: string[]) =>
   roles.includes('signatory') && roles.includes('director') ? 'signatory and director'
@@ -161,18 +214,31 @@ function submit(body: Json) {
   const all = apps();
   const n = Object.keys(all).length + 1;
   const applicationId = `ZMC-${String(90000 + n)}`;
+  const me = readEkyc(body.applicant.ekycToken);
+  if (!me) return err('Your Fayda verification has expired. Please verify with Fayda again.', 401);
+  const records = verifs();
+  for (const p of body.people) {
+    const v = records[p.verificationId];
+    if (!v || v.key !== p.verificationKey || v.cancelled || v.applicationId) {
+      return { status: 400, body: { success: false, error: 'A person is no longer on this application. Please add them again.', verificationId: p.verificationId } };
+    }
+  }
   const people = [
-    { id: 'P1', fullName: APPLICANT_NAME, roles: body.applicant.roles, isApplicant: true, verified: true, rawPhone: body.applicant.phone,
+    { id: 'P1', fullName: me.name, roles: body.applicant.roles, isApplicant: true, verified: true, rawPhone: body.applicant.phone,
       signature: body.applicant.signature ? { fileName: files[body.applicant.signature.fileId] || 'signature.jpg', status: 'pending' } : null },
-    ...body.people.map((p: Json, i: number) => ({
-      id: `P${i + 2}`, fullName: p.fullName, roles: p.roles, isApplicant: false, verified: false, rawPhone: p.phone,
-      inviteSentAt: new Date().toISOString(), inviteExpiresAt: new Date(Date.now() + 14 * DAY).toISOString(),
-      signature: p.signature ? { fileName: files[p.signature.fileId] || 'signature.jpg', status: 'pending' } : null,
-    })),
+    ...body.people.map((p: Json, i: number) => {
+      const v = records[p.verificationId];
+      return {
+        id: `P${i + 2}`, fullName: v.verified ? v.fullName : v.enteredName || `Mobile ${mask(v.phone)}`, roles: p.roles, isApplicant: false,
+        verified: !!v.verified, verifiedVia: v.verified ? v.mode : undefined, rawPhone: v.phone, inviteToken: v.token,
+        inviteSentAt: v.sentAt, inviteExpiresAt: v.expiresAt,
+        signature: p.signature ? { fileName: files[p.signature.fileId] || 'signature.jpg', status: 'pending' } : null,
+      };
+    }),
   ];
   const docs = category.documents.filter(x => !x.subtypes.length || x.subtypes.includes(o.subtypeId));
   const app = {
-    applicationId, accessKey: rand(16), status: people.length === 1 ? 'pending' : 'awaiting_verification',
+    applicationId, accessKey: rand(16), status: people.every((p: Json) => p.verified) ? 'pending' : 'awaiting_verification',
     organizationName: o.name, categoryName: category.name, submittedAt: new Date().toISOString(),
     branch: BRANCHES.find(b => b.branchCode === body.branchCode)?.name || body.branchCode,
     people,
@@ -182,6 +248,9 @@ function submit(body: Json) {
     }),
   };
   putApp(app);
+  // the application takes the people's records over
+  for (const p of body.people) delete records[p.verificationId];
+  save(VERIFS, records);
   return ok({ applicationId, accessKey: app.accessKey, status: app.status, view: view(app) }, 201);
 }
 
@@ -200,12 +269,12 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
   if (path === '/api/fayda/request-otp') return { status: 200, body: { success: true, transactionID: rand(), maskedMobile: '09******11' } };
   if (path === '/api/resend') return { status: 200, body: { success: true } };
   if (path === '/api/fayda/ekyc') {
-    const who = currentPerson();
+    const who = personFor(body?.individualId);
     return {
       status: 200,
       body: {
-        psut: `DEMO${rand(12).toUpperCase()}`,
-        ekycToken: `demo-ekyc-${rand()}`,
+        psut: who.uin,
+        ekycToken: ekycTokenFor(who),
         identity: {
           name_eng: who.name, name_amh: 'ናሙና ስም', dob: '1988-04-12', gender_eng: 'Female', gender_amh: 'ሴት',
           phone: who.phone, email: '', region_eng: 'Addis Ababa', region_amh: 'አዲስ አበባ', zone_eng: 'Bole', zone_amh: 'ቦሌ',
@@ -233,6 +302,30 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
     return ok({ fileId, fileKey: rand(16), fileName: body!.fileName, mimeType, size }, 201);
   }
   if (path === '/api/corporate/applications' && method === 'POST') return submit(body!);
+
+  if (path === '/api/corporate/verifications' && method === 'POST') {
+    if (body!.action === 'status') {
+      const all = verifs();
+      return ok(body!.items.map((i: Json) => {
+        const v = all[i.id];
+        return v && v.key === i.key && !v.cancelled ? { found: true, ...verifView(v) } : { found: false, verificationId: i.id };
+      }));
+    }
+    return addPerson(body!);
+  }
+  let mv = path.match(/^\/api\/corporate\/verifications\/(V\w+)$/);
+  if (mv) {
+    const v = verifs()[mv[1]];
+    if (!v || v.key !== body?.key || v.cancelled) return err('Not found', 404);
+    if (body!.action === 'cancel') { v.cancelled = true; putVerif(v); return ok({ cancelled: true }); }
+    if (body!.action === 'resend') {
+      if (v.verified) return err(`${v.fullName} has already verified.`, 409);
+      v.token = `demo-link-${rand(20)}`; v.sentAt = new Date().toISOString(); v.sentCount = (v.sentCount || 0) + 1;
+      putVerif(v);
+      return ok({ verification: verifView(v), link: linkFor(v.token) });
+    }
+    return err('Unknown action');
+  }
 
   let m = path.match(/^\/api\/corporate\/applications\/(ZMC-\d+)$/);
   if (m) {
@@ -267,24 +360,48 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
   }
 
   m = path.match(/^\/api\/corporate\/invites\/(.+)$/);
+  const early = m ? findEarly(decodeURIComponent(m[1])) : null;
+  if (m && early) {
+    if (method === 'GET') {
+      return ok({
+        applicationId: '', submitted: false, organizationName: early.organizationName, categoryName: early.categoryName,
+        applicantName: early.applicantName, fullName: early.enteredName, roles: early.roles, roleText: roleText(early.roles),
+        verified: !!early.verified, verifiedName: early.verified ? early.fullName : undefined, expired: false, expiresAt: early.expiresAt, open: true,
+      });
+    }
+    if (early.verified) return err('You have already verified. Thank you!', 409);
+    const who = readEkyc(body?.ekycToken);
+    if (!who) return err('Please verify with Fayda again.', 401);
+    const me = Object.values(verifs()) as Json[];
+    if (who.uin === early.applicantUin) return err(`This Fayda ID belongs to ${early.applicantName}, who applied. Each person verifies with their own Fayda ID.`, 409);
+    if (me.some(v => v.groupId === early.groupId && v.verificationId !== early.verificationId && v.uin === who.uin && !v.cancelled)) {
+      return err('This Fayda ID was already used for someone else on this application.', 409);
+    }
+    Object.assign(early, { verified: true, fullName: who.name, uin: who.uin });
+    putVerif(early);
+    return ok({ fullName: who.name, organizationName: early.organizationName, applicationId: '', allVerified: false, submitted: false, applicantName: early.applicantName });
+  }
   if (m) {
     const found = findInvite(decodeURIComponent(m[1]));
     if (!found) return err('This link is not valid any more. Ask the person who applied to send you a new one.', 404);
     const { app: a, person: p } = found;
     if (method === 'GET') {
       return ok({
-        applicationId: a.applicationId, organizationName: a.organizationName, categoryName: a.categoryName, applicantName: APPLICANT_NAME,
+        applicationId: a.applicationId, submitted: true, organizationName: a.organizationName, categoryName: a.categoryName,
+        applicantName: a.people[0].fullName,
         fullName: p.fullName, roles: p.roles, roleText: roleText(p.roles), verified: p.verified, verifiedName: p.verified ? p.fullName.toUpperCase() : undefined,
         expired: false, expiresAt: p.inviteExpiresAt, open: a.status === 'awaiting_verification',
       });
     }
     if (p.verified) return err('You have already verified. Thank you!', 409);
+    const who = readEkyc(body?.ekycToken);
     p.verified = true;
-    p.fullName = p.fullName.toUpperCase();
+    p.verifiedVia = 'link';
+    p.fullName = who?.name || p.fullName.toUpperCase();
     const allVerified = a.people.every((x: Json) => x.verified);
     if (allVerified) a.status = 'pending';
     putApp(a);
-    return ok({ fullName: p.fullName, organizationName: a.organizationName, applicationId: a.applicationId, allVerified });
+    return ok({ fullName: p.fullName, organizationName: a.organizationName, applicationId: a.applicationId, allVerified, submitted: true });
   }
 
   return err('Not available in demo mode', 404);
@@ -300,6 +417,14 @@ function bankActions(panel: HTMLElement) {
   title.textContent = 'DEMO MODE — sample data, nothing goes to the bank';
   title.style.cssText = 'font-weight:800;letter-spacing:.04em;margin-bottom:4px';
   panel.appendChild(title);
+  const early = (Object.values(verifs()) as Json[]).filter(v => v.mode === 'link' && !v.verified && !v.cancelled && !v.applicationId);
+  early.forEach(v => {
+    const l = document.createElement('a');
+    l.textContent = `📱 SMS to ${v.phone}${v.enteredName ? ` (${v.enteredName})` : ''} → open their link (new tab)`;
+    l.href = linkFor(v.token); l.target = '_blank';
+    l.style.cssText = 'display:block;color:#fde68a;margin-top:3px;text-decoration:underline';
+    panel.appendChild(l);
+  });
   if (!a) return;
 
   const btn = (label: string, fn: () => void) => {
@@ -345,7 +470,11 @@ function showPanel() {
     + 'background:#111827e6;color:#fff;font:12px/1.35 system-ui,sans-serif;box-shadow:0 8px 24px #0006';
   document.body.appendChild(panel);
   let last: string | null = null;
-  const refresh = () => { if (location.search !== last) { last = location.search; bankActions(panel); } };
+  // redraw when the page changes or a link is sent / used (another tab)
+  const refresh = () => {
+    const now = location.search + '|' + (localStorage.getItem(VERIFS) || '');
+    if (now !== last) { last = now; bankActions(panel); }
+  };
   refresh();
   setInterval(refresh, 500);
 }

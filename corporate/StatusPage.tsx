@@ -152,7 +152,7 @@ const StatusPage: React.FC<{ applicationId: string; accessKey: string; onHome: (
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-bold text-gray-800 truncate">{p.fullName}{p.isApplicant && ' (you)'}</div>
-                  <div className="text-xs text-gray-400">{roleText(p.roles)} · {p.phone}</div>
+                  <div className="text-xs text-gray-400">{[roleText(p.roles), p.phone].filter(Boolean).join(" · ")}</div>
                 </div>
                 {p.verified ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-green-600 flex-shrink-0">
