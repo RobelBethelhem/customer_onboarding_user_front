@@ -14,7 +14,7 @@ import DataReviewStep from '../steps/DataReviewStep';
 import FaceVerificationStep from '../steps/FaceVerificationStep';
 import BranchSelectionStep from '../steps/BranchSelectionStep';
 import AccountTypeStep from '../steps/AccountTypeStep';
-import { CorporateStep, documentsFor } from './types';
+import { CorporateStep, documentsFor, accountClassesFor } from './types';
 import type { CorporateCatalog, CorporateState, GuestFlow, PersonForm, Role, UploadedFile } from './types';
 import { corporateService, identityPayload, rememberApplication, CorporateApiError } from './api';
 import { EMPTY_ORGANIZATION, EMPTY_ADDRESS, EKYC_MAX_AGE_MS, FACE_MAX_AGE_MS, normalizeMobile, entriesOf, ROLE_LABELS } from './constants';
@@ -505,7 +505,12 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
       case CorporateStep.Organization: screen = <OrganizationStep {...stepProps} />; break;
       case CorporateStep.Contact: screen = <ContactStep {...stepProps} />; break;
       case CorporateStep.Branch: screen = <BranchSelectionStep {...identityProps} />; break;
-      case CorporateStep.Account: screen = <AccountTypeStep {...identityProps} audience="organization" />; break;
+      case CorporateStep.Account: {
+        // only the accounts KYC set for this kind of organization
+        const category = catalog?.categories.find(c => c.id === state.organization.categoryId);
+        screen = <AccountTypeStep {...identityProps} audience="organization" allowedClasses={accountClassesFor(category, state.organization.subtypeId)} />;
+        break;
+      }
       case CorporateStep.People: screen = <PeopleStep {...stepProps} catalog={catalog!} onVerifyHere={startGuest} />; break;
       case CorporateStep.Documents: screen = <DocumentsStep {...stepProps} catalog={catalog!} />; break;
       case CorporateStep.FinalReview:

@@ -145,6 +145,8 @@ export interface CatalogCategory {
   description: string;
   subtypes: { id: string; name: string }[];
   documents: CatalogDocument[];
+  // account classes it can open (set by KYC); null / missing: every account for organizations
+  accounts?: { classCode: string; subtypes: string[] }[] | null;
 }
 
 export interface CorporateRules {
@@ -158,6 +160,10 @@ export interface CorporateCatalog {
   categories: CatalogCategory[];
   rules: CorporateRules;
 }
+
+/** Account class codes this category and sub-type can open, or null for every account for organizations */
+export const accountClassesFor = (category: CatalogCategory | undefined, subtypeId: string): string[] | null =>
+  category?.accounts ? category.accounts.filter(a => !a.subtypes.length || a.subtypes.includes(subtypeId)).map(a => a.classCode) : null;
 
 /** Documents the organization uploads for its category and sub-type */
 export const documentsFor = (category: CatalogCategory | undefined, subtypeId: string): CatalogDocument[] =>

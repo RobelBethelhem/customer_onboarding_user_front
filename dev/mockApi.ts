@@ -66,6 +66,7 @@ const CATALOG = {
         d('operators_list', 'Persons authorized to operate the account', 'As specified in the Constitution/Charter or another document.'),
         d('work_permit', 'Work or residence permit', 'For foreign national signatories.', false),
       ],
+      accounts: [{ classCode: 'BCUR', subtypes: [] }, { classCode: 'BSAV', subtypes: [] }],
     },
     {
       id: 'religious', name: 'Religious Organization', description: 'Churches, mosques and other religious institutions.',
@@ -79,6 +80,7 @@ const CATALOG = {
         d('support_eecmy', 'Letter of support from the President', 'Of the Ethiopian Evangelical Church Mekane Yesus, or his designate.', true, ['eecmy']),
         d('support_federal_affairs', 'Letter of support from the concerned government body', 'Currently the Ministry of Federal Affairs.', true, ['other_religion']),
       ],
+      accounts: [{ classCode: 'BSAV', subtypes: [] }, { classCode: 'IBWD', subtypes: ['islamic'] }],
     },
     {
       id: 'cooperative', name: 'Cooperative, Association or Edir', description: 'Cooperatives, associations and Edirs.',
@@ -89,6 +91,7 @@ const CATALOG = {
         d('rules_regulations', 'Rules and regulations', 'Approved and registered, bearing the stamps of the registering body and the cooperative.', true, ['cooperative']),
         d('empowerment_letter', 'Letter naming the persons who operate the account', 'As per the memorandum and articles of association.'),
       ],
+      accounts: [{ classCode: 'BSAV', subtypes: [] }, { classCode: 'BSVP', subtypes: ['cooperative', 'association'] }],
     },
   ],
 };

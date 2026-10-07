@@ -10,9 +10,10 @@ interface Props {
   onNext: () => void;
   onBack: () => void;
   audience?: 'individual' | 'organization'; // business account wizard: products for organizations
+  allowedClasses?: string[] | null;          // business: the classes this kind of organization may open (null = all)
 }
 
-const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, audience }) => {
+const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, audience, allowedClasses }) => {
   // Products come from the bank's catalog (dashboard → Account Products), in the order KYC set
   const [products, setProducts] = useState<AccountType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
     setLoading(true);
     setLoadError('');
     try {
-      const list = await productService.list(audience ?? 'individual');
+      const list = await productService.list(audience ?? 'individual', allowedClasses ?? null);
       setProducts(list);
       // Drop a choice that is no longer offered (turned off, or saved from an older version of the form)
       const acc = list.find(a => a.id === state.selectedAccountType?.id);
@@ -83,7 +84,9 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
 
         {!loading && !loadError && products.length === 0 && (
           <div className="p-4 rounded-xl bg-gray-50 text-sm text-gray-600">
-            No account types are available right now. Please try again later or visit a Zemen Bank branch.
+            {allowedClasses
+              ? 'No account type is offered online for this type of organization yet. Please visit a Zemen Bank branch.'
+              : 'No account types are available right now. Please try again later or visit a Zemen Bank branch.'}
           </div>
         )}
 

@@ -321,12 +321,18 @@ function toAccountType(p: CatalogProduct): AccountType {
 }
 
 export const productService = {
-  /** Active account products and classes, in the order set by KYC — for individuals or organizations */
-  list: async (audience: 'individual' | 'organization' = 'individual'): Promise<AccountType[]> => {
+  /**
+   * Active account products and classes, in the order KYC set — for individuals or organizations.
+   * `onlyClasses`: the class codes a kind of organization may open (null = all).
+   */
+  list: async (audience: 'individual' | 'organization' = 'individual', onlyClasses: string[] | null = null): Promise<AccountType[]> => {
     const res = await dashboardGet<{ success: boolean; data: CatalogProduct[] }>(
       audience === 'organization' ? '/api/account-products?for=organization' : '/api/account-products'
     );
-    return (res.data || []).map(toAccountType);
+    return (res.data || [])
+      .map(p => (onlyClasses ? { ...p, classes: p.classes.filter(c => onlyClasses.includes(c.code)) } : p))
+      .filter(p => p.classes.length)
+      .map(toAccountType);
   },
 };
 

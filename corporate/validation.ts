@@ -1,5 +1,5 @@
 import type { CorporateCatalog, CorporateState, OrganizationForm } from './types';
-import { CorporateStep, documentsFor, personName } from './types';
+import { CorporateStep, documentsFor, personName, accountClassesFor } from './types';
 import { EMAIL, normalizeMobile } from './constants';
 
 // Same checks as the bank's server, so the customer sees them on the right screen.
@@ -73,6 +73,15 @@ export function validateDocuments(state: CorporateState, catalog: CorporateCatal
   return e;
 }
 
+export function validateAccount(state: CorporateState, catalog: CorporateCatalog): Errors {
+  const tier = state.identity.selectedTier;
+  if (!tier) return { account: 'Choose an account type' };
+  const category = catalog.categories.find(c => c.id === state.organization.categoryId);
+  const allowed = accountClassesFor(category, state.organization.subtypeId);
+  if (allowed && !allowed.includes(tier.code)) return { account: `${tier.name} is not offered for this type of organization — choose another account` };
+  return {};
+}
+
 /** First step that is not complete (before submitting), with its first message */
 export function firstIncomplete(state: CorporateState, catalog: CorporateCatalog): { step: CorporateStep; message: string } | null {
   const checks: [CorporateStep, Errors][] = [
@@ -80,7 +89,7 @@ export function firstIncomplete(state: CorporateState, catalog: CorporateCatalog
     [CorporateStep.Organization, validateOrganization(state.organization)],
     [CorporateStep.Contact, validateContact(state.organization)],
     [CorporateStep.Branch, state.identity.selectedBranch ? {} : { branch: 'Choose a branch' }],
-    [CorporateStep.Account, state.identity.selectedTier ? {} : { account: 'Choose an account type' }],
+    [CorporateStep.Account, validateAccount(state, catalog)],
     [CorporateStep.People, validatePeople(state, catalog)],
     [CorporateStep.Documents, validateDocuments(state, catalog)],
   ];
