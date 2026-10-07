@@ -146,7 +146,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         return;
       }
 
-      onUpdate({ faydaData: customerData });
+      onUpdate({ faydaData: customerData, ekycToken: rawResponse.ekycToken || '' });
       if (screening.hasPEP || screening.requiresSecondLevelApproval) {
         toast.info('Additional verification required — your application will undergo enhanced review.');
       } else {

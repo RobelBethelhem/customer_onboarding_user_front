@@ -6,9 +6,12 @@ import { Step } from '../types';
 interface ProgressBarProps {
   currentStep: number;
   totalSteps: number;
+  // another wizard's steps and labels (business accounts); default: the individual account steps
+  steps?: number[];
+  labels?: Record<number, string>;
 }
 
-const STEP_LABELS: Record<number, string> = {
+const INDIVIDUAL_LABELS: Record<number, string> = {
   [Step.ExistingAccount]: "Customer",
   [Step.Branch]: "Branch",
   [Step.AccountType]: "Account",
@@ -22,9 +25,9 @@ const STEP_LABELS: Record<number, string> = {
   [Step.FinalReview]: "Confirm",
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps, steps, labels }) => {
   // We only show steps from Step.ExistingAccount to Step.FinalReview
-  const stepsArray = [
+  const stepsArray = steps || [
     Step.ExistingAccount,
     Step.Branch,
     Step.AccountType,
@@ -37,6 +40,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) =>
     Step.Services,
     Step.FinalReview
   ];
+  const STEP_LABELS = labels || INDIVIDUAL_LABELS;
   const currentIndex = stepsArray.indexOf(currentStep);
 
   return (

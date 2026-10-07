@@ -31,9 +31,10 @@ import ApplicationStatusChecker from '../components/ApplicationStatusChecker';
 
 interface LandingPageProps {
   onStart: () => void;
+  onStartBusiness?: () => void; // business account application (organizations)
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onStart, onStartBusiness }) => {
   const [scrollY, setScrollY] = useState(0);
   const [isIntroFinished, setIsIntroFinished] = useState(false);
   const [appBooted, setAppBooted] = useState(false);
@@ -169,6 +170,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <button onClick={onStart} className="group relative px-10 py-5 bg-[#ed1c24] text-white font-bold rounded-2xl overflow-hidden shadow-2xl transition-all hover:scale-105 active:scale-95">
               <span className="relative z-10 flex items-center gap-3 text-lg">Start Onboarding <MoveRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" /></span>
             </button>
+            {onStartBusiness && (
+              <button onClick={onStartBusiness} className="group px-10 py-5 bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold rounded-2xl transition-all hover:bg-white/20 hover:scale-105 active:scale-95">
+                <span className="flex items-center gap-3 text-lg"><Briefcase className="w-5 h-5" /> Business Account</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-3 text-white/40 animate-bounce">
@@ -218,6 +224,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <span className="text-[#ed1c24] font-black tracking-widest uppercase text-xs">For Enterprises</span>
             <h2 className="text-5xl md:text-6xl font-black text-gray-900 mt-4 tracking-tighter">Institutional Strength</h2>
             <div className="h-1.5 w-24 bg-gradient-to-r from-[#ed1c24] to-[#ed1c24] mx-auto rounded-full mt-8" />
+            {onStartBusiness && (
+              <div className="mt-12 space-y-4">
+                <p className="text-lg text-gray-500 font-medium">
+                  Companies, associations, NGOs and other organizations can apply online: verify with Fayda,
+                  upload the documents, and each signatory verifies from their own phone.
+                </p>
+                <button onClick={onStartBusiness} className="group inline-flex items-center gap-3 px-8 py-4 bg-[#ed1c24] text-white font-bold rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95">
+                  <Briefcase className="w-5 h-5" /> Open a Business Account <MoveRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <ModernBusinessCard 

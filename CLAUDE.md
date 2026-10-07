@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zemen Bank Customer Onboarding Web App — a multi-step wizard for opening premium savings accounts, with Fayda national-ID eKYC, OFAC/sanctions screening, camera-based face verification, and a referral/rewards system. Built with React 19, TypeScript, and Vite. Originally scaffolded from Google AI Studio (hence the vestigial `GEMINI_API_KEY` config — see Environment).
+Zemen Bank Customer Onboarding Web App — a multi-step wizard for opening premium savings accounts, with Fayda national-ID eKYC, OFAC/sanctions screening, camera-based face verification, and a referral/rewards system. It also takes **business account applications** (organizations; `corporate/`, see below). Built with React 19, TypeScript, and Vite. Originally scaffolded from Google AI Studio (hence the vestigial `GEMINI_API_KEY` config — see Environment).
 
 > **Project location:** the actual app lives at `ZOnboarding Backup/zemen_bank_customer_onboarding_web_app-main (2)/` (where `package.json` is). All commands below must run from that directory, not the repo root. The sibling `zemen_bank_customer_onboarding_web_app-main/` folder is empty and can be ignored.
 
@@ -26,7 +26,7 @@ This is a frontend-only repo; it calls two remote backends defined at the top of
 - `API_BASE_URL = https://onboard.zemenbank.com/api1` — onboarding backend (`faydaService`)
 - `DASHBOARD_URL = https://onboard.zemenbank.com/api2` — referral/rewards backend (`referralService`)
 
-⚠️ Inconsistency to be aware of: `App.tsx` validates the URL referral code against a **hardcoded `http://localhost:3500/api/referrals/...`** on mount, not `DASHBOARD_URL`. If referral validation fails locally, this is why.
+The URL referral code is validated through `referralService.validateCode` (`DASHBOARD_URL`). Business account calls go to `api1/api/corporate/*`: the Fayda backend relays them to the dashboard's public corporate API.
 
 ## Architecture
 
@@ -50,7 +50,18 @@ Landing(0) → Welcome(1) → ExistingAccount(2) → Branch(3) → AccountType(4
 
 **`ExistingAccount` step:** "Do you already have an account?" — *No* continues the normal flow; *Yes* takes a 16-digit account number (CIF = `substring(6, 13)`) or a 7-digit CIF into `hasExistingAccount` / `existingAccountNumber` / `existingCif`, sent on submit as `existingCustomer` / `existingCif` / `existingAccountNumber`. The dashboard verifies the CIF in FlexCube and, on approval, opens only a new account under it (no new CIF). Sessions saved before this step existed are migrated on load in `App.tsx` (step +1, treated as new customer).
 
-`App.tsx` is the orchestrator: it owns `OnboardingState`, renders the current step via `renderStep` (a `useMemo`), and wraps non-landing steps in `WizardWrapper` (parallax background, logo, progress bar, referral banner). Each step gets `state`, `onUpdate`, `onNext`, `onBack` props.
+`App.tsx` picks the flow from the URL: `?invite=TOKEN` → `corporate/InviteApp`, `?corporate=ID&key=KEY` → `corporate/StatusPage`, otherwise `IndividualApp` (landing page + the wizard above); the landing page's "Business Account" buttons open `corporate/CorporateApp`. `IndividualApp` owns `OnboardingState`, renders the current step via `renderStep` (a `useMemo`), and wraps non-landing steps in `components/WizardWrapper` (parallax background, logo, progress bar — another wizard passes its own `progress` steps/labels —, referral banner). Each step gets `state`, `onUpdate`, `onNext`, `onBack` props. Every flow renders inside `components/AppShell` (`#app-root`, toaster, `data-theme="ifb"`). The empty `OnboardingState` is `INITIAL_STATE` in `initialState.ts`.
+
+### Business accounts (`corporate/`)
+
+Organizations apply through their representative; everything about documents is managed by KYC on the dashboard (Products → Business Accounts: organization types, sub-types, documents, and the rules — max people per application (≤ 10), max file size, specimen signature required, link validity).
+
+- **`CorporateApp`** (`CorporateStep` in `corporate/types.ts`): Intro → Fayda ID → OTP → Review → Face check → Type of organization → Organization details → Contact & address → Branch → Account (products with audience "organization": `AccountTypeStep audience="organization"`) → Signatories & directors → Documents (+ specimen signature per signatory) → Review & submit → Submitted. The Fayda/OTP/review/face/branch/account screens are the individual steps, fed with `CorporateState.identity` (an `OnboardingState`) through `updateIdentity`.
+- **Identity proof:** the OTP step stores the Fayda backend's signed `ekycToken`; with the face check's `faceVerificationToken` the dashboard trusts only what the Fayda backend signed (`identityPayload` in `corporate/api.ts`). The eKYC result is valid 7 days and the face result 48 hours: before submitting (and on resume) the wizard asks again when they are older than 6.5 days / 46 hours (`returnAfterFace` brings the applicant back to where they were).
+- **Uploads** (`corporate/FileUpload.tsx`): photos are made smaller on the device (canvas, JPEG on white; 2000 px documents, 1200 px signatures), PDFs go as they are; each upload returns `{fileId, fileKey}` and the application sends those. An upload unused for 7 days is deleted; if the server answers with a `fileId`, that file is asked for again.
+- **Other people** get an SMS link `?invite=TOKEN` (`InviteApp`): Fayda ID → OTP → review → face check → confirm. The application reaches KYC when everyone has verified.
+- **Status page** `?corporate=ID&key=KEY` (link in the applicant's SMS; also kept in `localStorage` `zemen-business-apps` and listed on the intro screen): status, who has verified (send the link again), and — when KYC returns it — upload of the rejected documents/signatures.
+- Validation mirrors the server (`corporate/validation.ts`); fixed company fields, FlexCube LOV codes for industry (`INDUSTRIES`) and source of funds (`SOURCES_OF_FUNDS`).
 
 ### State Management
 
@@ -58,7 +69,7 @@ All state is one `OnboardingState` object (`types.ts`) held in `App.tsx` `useSta
 
 ### Session Persistence (`services/sessionStore.ts`)
 
-State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`, key `current`), **AES-GCM 256-bit encrypted** via Web Crypto. The key is generated once and kept in `localStorage` (`zemen-session-key`).
+State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`), **AES-GCM 256-bit encrypted** via Web Crypto — one entry per flow: `current` (individual), `business` (business wizard), `invite` (verification link). The key is generated once and kept in `localStorage` (`zemen-session-key`); `clearSession(key)` removes it only when no entry is left.
 
 - Auto-save is debounced 800ms (`App.tsx`), and only for steps `Branch ≤ currentStep < Success`.
 - On mount, a saved session at step ≥ Branch triggers `ResumeModal` ("resume" vs "start fresh") when the user starts onboarding.
@@ -120,10 +131,11 @@ Steps use `navigator.mediaDevices.getUserMedia()` (camera, in `FaceVerificationS
 
 | File | Role |
 |------|------|
-| `App.tsx` | Root orchestrator: owns all state, routing, session save/resume, referral capture |
+| `App.tsx` | Flow by URL (individual / business / verification link / status page); `IndividualApp` owns the individual state, session save/resume, referral capture |
+| `corporate/` | Business accounts: `CorporateApp`, `InviteApp`, `StatusPage`, steps, `FileUpload`, API client, validation |
 | `types.ts` | `OnboardingState`, `Step` enum, all domain interfaces |
 | `constants.tsx` | Branches, account types, FlexCube LOV dropdowns, colors |
 | `services/api.ts` | `faydaService` + `referralService` API clients |
 | `services/sessionStore.ts` | Encrypted IndexedDB session persistence |
 | `steps/*.tsx` | One component per wizard step (`FaceVerificationStep` is the most complex) |
-| `components/` | `ProgressBar`, `ResumeModal`, `ReferralLinkGenerator`, `RewardsDashboard` |
+| `components/` | `AppShell`, `WizardWrapper`, `ProgressBar`, `ResumeModal`, `ReferralLinkGenerator`, `RewardsDashboard` |

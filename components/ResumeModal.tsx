@@ -8,6 +8,9 @@ interface Props {
   savedAt: number;
   onResume: () => void;
   onStartFresh: () => void;
+  // business account wizard: its own step name and completed steps (default: individual account steps)
+  stepLabel?: string;
+  completed?: string[];
 }
 
 const STEP_META: Record<number, { label: string; icon: React.ReactNode }> = {
@@ -34,11 +37,13 @@ function timeAgo(timestamp: number): string {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-const ResumeModal: React.FC<Props> = ({ stepNumber, savedAt, onResume, onStartFresh }) => {
-  const meta = STEP_META[stepNumber] || { label: `Step ${stepNumber}`, icon: <FileText className="w-5 h-5" /> };
+const ResumeModal: React.FC<Props> = ({ stepNumber, savedAt, onResume, onStartFresh, stepLabel, completed }) => {
+  const meta = stepLabel
+    ? { label: stepLabel, icon: <FileText className="w-5 h-5" /> }
+    : STEP_META[stepNumber] || { label: `Step ${stepNumber}`, icon: <FileText className="w-5 h-5" /> };
 
   // Build a small progress summary showing completed steps
-  const completedSteps = Object.entries(STEP_META)
+  const completedSteps = completed || Object.entries(STEP_META)
     .filter(([key]) => Number(key) < stepNumber)
     .map(([key, val]) => val.label);
 

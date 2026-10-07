@@ -9,9 +9,10 @@ interface Props {
   onUpdate: (updates: Partial<OnboardingState>) => void;
   onNext: () => void;
   onBack: () => void;
+  audience?: 'individual' | 'organization'; // business account wizard: products for organizations
 }
 
-const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
+const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, audience }) => {
   // Products come from the bank's catalog (dashboard → Account Products), in the order KYC set
   const [products, setProducts] = useState<AccountType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) =
     setLoading(true);
     setLoadError('');
     try {
-      const list = await productService.list();
+      const list = await productService.list(audience ?? 'individual');
       setProducts(list);
       // Drop a choice that is no longer offered (turned off, or saved from an older version of the form)
       const acc = list.find(a => a.id === state.selectedAccountType?.id);

@@ -1,6 +1,6 @@
 import type { AccountTier, AccountType, AdditionalService, Branch, LivenessFrame } from '../types';
 
-const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
+export const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
 const DASHBOARD_URL = 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
 
 async function postRequest<T,>(path: string, body: any): Promise<T> {
@@ -321,9 +321,11 @@ function toAccountType(p: CatalogProduct): AccountType {
 }
 
 export const productService = {
-  /** Active account products and classes, in the order set by KYC */
-  list: async (): Promise<AccountType[]> => {
-    const res = await dashboardGet<{ success: boolean; data: CatalogProduct[] }>('/api/account-products');
+  /** Active account products and classes, in the order set by KYC — for individuals or organizations */
+  list: async (audience: 'individual' | 'organization' = 'individual'): Promise<AccountType[]> => {
+    const res = await dashboardGet<{ success: boolean; data: CatalogProduct[] }>(
+      audience === 'organization' ? '/api/account-products?for=organization' : '/api/account-products'
+    );
     return (res.data || []).map(toAccountType);
   },
 };

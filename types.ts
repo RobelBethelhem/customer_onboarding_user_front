@@ -76,6 +76,8 @@ export interface OnboardingState {
   fcn: string;
   token: string;
   faydaData: FaydaCustomerData | null;
+  // eKYC result signed by the Fayda backend (business accounts: proves the identity to the bank)
+  ekycToken?: string;
   additionalInfo: {
     motherMaidenName: string;
     email: string;

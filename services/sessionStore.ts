@@ -11,10 +11,13 @@ interface EncryptedPayload {
   ciphertext: string;
 }
 
-interface SavedSession {
-  state: OnboardingState;
+interface SavedSession<T = OnboardingState> {
+  state: T;
   savedAt: number;
 }
+
+// Entries: 'current' (individual account), 'business' (business account), 'invite' (verification link)
+type SessionKey = 'current' | 'business' | 'invite';
 
 // --- IndexedDB helpers ---
 
@@ -44,6 +47,14 @@ function idbGet(db: IDBDatabase, key: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const request = tx.objectStore(STORE_NAME).get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function idbCount(db: IDBDatabase): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).count();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -115,39 +126,41 @@ async function decrypt(payload: EncryptedPayload): Promise<string> {
 
 // --- Public API ---
 
-export async function saveSession(state: OnboardingState): Promise<void> {
+export async function saveSession<T = OnboardingState>(state: T, key: SessionKey = 'current'): Promise<void> {
   try {
-    const session: SavedSession = { state, savedAt: Date.now() };
+    const session: SavedSession<T> = { state, savedAt: Date.now() };
     const json = JSON.stringify(session);
     const encrypted = await encrypt(json);
     const db = await openDB();
-    await idbPut(db, 'current', encrypted);
+    await idbPut(db, key, encrypted);
     db.close();
   } catch {
     // Best-effort — silently fail if storage is unavailable
   }
 }
 
-export async function loadSession(): Promise<SavedSession | null> {
+export async function loadSession<T = OnboardingState>(key: SessionKey = 'current'): Promise<SavedSession<T> | null> {
   try {
     const db = await openDB();
-    const encrypted: EncryptedPayload | undefined = await idbGet(db, 'current');
+    const encrypted: EncryptedPayload | undefined = await idbGet(db, key);
     db.close();
     if (!encrypted) return null;
     const json = await decrypt(encrypted);
-    return JSON.parse(json) as SavedSession;
+    return JSON.parse(json) as SavedSession<T>;
   } catch {
     // Corrupted or key mismatch — treat as no session
     return null;
   }
 }
 
-export async function clearSession(): Promise<void> {
+export async function clearSession(key: SessionKey = 'current'): Promise<void> {
   try {
     const db = await openDB();
-    await idbDelete(db, 'current');
+    await idbDelete(db, key);
+    const left = await idbCount(db);
     db.close();
-    localStorage.removeItem(KEY_STORAGE_KEY);
+    // the key also decrypts the other flows' entries — drop it only when none is left
+    if (!left) localStorage.removeItem(KEY_STORAGE_KEY);
   } catch {
     // Best-effort cleanup
   }

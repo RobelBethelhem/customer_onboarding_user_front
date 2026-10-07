@@ -1,8 +1,10 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { OnboardingState, Step } from './types';
-import ProgressBar from './components/ProgressBar';
+import { INITIAL_STATE } from './initialState';
+import AppShell from './components/AppShell';
+import WizardWrapper from './components/WizardWrapper';
 import ResumeModal from './components/ResumeModal';
 import { saveSession, loadSession, clearSession } from './services/sessionStore';
 import { referralService } from './services/api';
@@ -21,81 +23,9 @@ import FaceVerificationStep from './steps/FaceVerificationStep';
 import ServicesStep from './steps/ServicesStep';
 import FinalReviewStep from './steps/FinalReviewStep';
 import SuccessStep from './steps/SuccessStep';
-
-const BACKGROUND_MAP: Record<number, string> = {
-  // [Step.Welcome]: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2069&auto=format&fit=crop",
-  // [Step.Branch]: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop",
-  // [Step.AccountType]: "https://images.unsplash.com/photo-1618044733300-947115823856?q=80&w=1974&auto=format&fit=crop",
-  // [Step.FaydaId]: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop",
-  // [Step.Otp]: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=2070&auto=format&fit=crop",
-  // [Step.Review]: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop",
-  // [Step.AdditionalInfo]: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
-  // [Step.Documents]: "https://images.unsplash.com/photo-1586769852836-bc069f19e1b6?q=80&w=2070&auto=format&fit=crop",
-  // [Step.FaceVerify]: "https://images.unsplash.com/photo-1558494949-ef010cbdcc51?q=80&w=2070&auto=format&fit=crop",
-  // [Step.Success]: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2070&auto=format&fit=crop",
-  
-  [Step.Welcome]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2069&auto=format&fit=crop",
-   [Step.Branch]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.AccountType]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=1974&auto=format&fit=crop",
-   [Step.FaydaId]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.Otp]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.Review]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.AdditionalInfo]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2015&auto=format&fit=crop",
-   [Step.Documents]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.FaceVerify]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-   [Step.Success]: "https://zemenbank.com/storage/2024/11/DSC00533-2-scaled.webp?q=80&w=2070&auto=format&fit=crop",
-};
-
-// Interest-Free Banking (Z-Qamar) products use their own background on every step
-const IFB_BACKGROUND = '/IFB_background.webp';
-
-const backgroundFor = (step: number, ifb: boolean): string =>
-  ifb ? IFB_BACKGROUND : (BACKGROUND_MAP[step] || BACKGROUND_MAP[Step.Welcome]);
-
-const INITIAL_STATE: OnboardingState = {
-  currentStep: Step.Landing,
-  selectedBranch: null,
-  selectedAccountType: null,
-  selectedTier: null,
-  fcn: '',
-  token: '',
-  faydaData: null,
-  additionalInfo: {
-    motherMaidenName: '',
-    email: '',
-    taxIdentity: '',
-    annualIncome: '',
-    occupation: '',
-    industry: '',
-    wealthSource: '',
-    otherOccupation: '',
-    otherIndustry: '',
-    otherWealthSource: '',
-    maritalStatus: '',
-    promotionType: '',
-  },
-  documents: [],
-  selfiePhoto: '',
-  verificationPhotos: {
-    faceCenter: '',
-    livenessFrames: [],
-  },
-  livenessConfidence: 0,
-  faceMatchScore: 0,
-  faceVideoId: '',
-  result: null,
-  referralCode: '',
-  referrerName: '',
-  hasExistingAccount: null,
-  existingAccountNumber: '',
-  existingCif: '',
-  requestedServices: [],
-  selectedServices: [],
-  serviceTermsAccepted: [],
-  faceVerificationToken: '',
-  livenessFrames: [],
-  faceMatched: null,
-};
+import CorporateApp from './corporate/CorporateApp';
+import InviteApp from './corporate/InviteApp';
+import StatusPage from './corporate/StatusPage';
 
 // Sessions saved by an older version of the wizard: shift the step number past steps added
 // since, so a resumed session opens on the same screen.
@@ -131,7 +61,8 @@ function upgradeSavedState(saved: OnboardingState): OnboardingState {
   return state;
 }
 
-const App: React.FC = () => {
+/** Individual account wizard (the original flow), from the landing page */
+const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusiness }) => {
   const [state, setState] = useState<OnboardingState>(INITIAL_STATE);
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [savedSessionData, setSavedSessionData] = useState<{ state: OnboardingState; savedAt: number } | null>(null);
@@ -293,7 +224,7 @@ const App: React.FC = () => {
   const renderStep = useMemo(() => {
     switch (state.currentStep) {
       case Step.Landing:
-        return <LandingPage onStart={handleStartOnboarding} />;
+        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} />;
       case Step.Welcome:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
@@ -375,14 +306,13 @@ const App: React.FC = () => {
           </WizardWrapper>
         );
       default:
-        return <LandingPage onStart={handleStartOnboarding} />;
+        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} />;
     }
-  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication]);
+  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness]);
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)
-    <div id="app-root" className="min-h-screen" data-theme={isIfb ? 'ifb' : undefined}>
-      <Toaster position="top-center" richColors />
+    <AppShell ifb={isIfb}>
       {renderStep}
       {showResumeModal && savedSessionData && (
         <ResumeModal
@@ -392,121 +322,67 @@ const App: React.FC = () => {
           onStartFresh={handleStartFresh}
         />
       )}
-    </div>
+    </AppShell>
   );
 };
 
-const WizardWrapper: React.FC<{ children: React.ReactNode; step: number; referrerName?: string; ifb?: boolean }> = ({ children, step, referrerName, ifb = false }) => {
-  const targetBg = backgroundFor(step, ifb);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [currentBg, setCurrentBg] = useState(targetBg);
-  const [prevBg, setPrevBg] = useState(targetBg);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+// ─── Which flow to show ─────────────────────────────────────────────────────────────────────
+// ?invite=TOKEN          a signatory/director verifying from the SMS link
+// ?corporate=ID&key=KEY  the business applicant's status page (link from the SMS)
+// otherwise              the landing page / individual wizard; "Business Account" opens the business wizard
+type Route =
+  | { kind: 'individual' }
+  | { kind: 'business' }
+  | { kind: 'invite'; token: string }
+  | { kind: 'status'; applicationId: string; key: string };
 
-  // Parallax effect
+function routeFromUrl(): Route {
+  const params = new URLSearchParams(window.location.search);
+  const invite = params.get('invite');
+  if (invite) return { kind: 'invite', token: invite };
+  const applicationId = params.get('corporate');
+  const key = params.get('key');
+  if (applicationId && key) return { kind: 'status', applicationId, key };
+  return { kind: 'individual' };
+}
+
+const App: React.FC = () => {
+  const [route, setRoute] = useState<Route>(routeFromUrl);
+
+  // Browser back/forward between the status page and the rest
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({
-        x: (e.clientX / window.innerWidth - 0.5) * 15,
-        y: (e.clientY / window.innerHeight - 0.5) * 15,
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    const onPop = () => setRoute(routeFromUrl());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Handle Background Transition to avoid black flickers. Runs only when the target image changes
-  // (e.g. switching to/from an IFB product), so the fade timer isn't cleared by its own state update.
-  useEffect(() => {
-    if (targetBg === currentBg) return;
-    setPrevBg(currentBg);
-    setCurrentBg(targetBg);
-    setIsTransitioning(true);
-    const timer = setTimeout(() => setIsTransitioning(false), 1200);
-    return () => clearTimeout(timer);
-  }, [targetBg]); // eslint-disable-line react-hooks/exhaustive-deps
+  const home = useCallback(() => {
+    if (window.location.search) window.history.pushState({}, '', window.location.pathname);
+    setRoute({ kind: 'individual' });
+    window.scrollTo({ top: 0 });
+  }, []);
 
-  return (
-    <div className="relative min-h-screen flex flex-col items-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black">
-      
-      {/* Background Layer 1 (Previous/Static) */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-[2000ms] ease-out opacity-80"
-        style={{ 
-          backgroundImage: `url("${prevBg}")`,
-          transform: `scale(1.1) translate3d(${mousePos.x * 0.1}px, ${mousePos.y * 0.1}px, 0)`,
-          filter: 'blur(1px) brightness(0.8)'
-        }}
-      />
+  const startBusiness = useCallback(() => {
+    setRoute({ kind: 'business' });
+    window.scrollTo({ top: 0 });
+  }, []);
 
-      {/* Background Layer 2 (Current/Fading In) */}
-      <div 
-        className={`absolute inset-0 z-[1] bg-cover bg-center transition-all duration-[1200ms] ease-in-out ${isTransitioning ? 'opacity-100' : 'opacity-100'}`}
-        style={{ 
-          backgroundImage: `url("${currentBg}")`,
-          transform: `scale(1.1) translate3d(${mousePos.x * 0.1}px, ${mousePos.y * 0.1}px, 0)`,
-          filter: 'blur(1px) brightness(0.8)',
-          opacity: isTransitioning ? 0 : 1, // Start hidden during transition then fade in
-          animation: isTransitioning ? 'fadeInBG 1.2s forwards' : 'none'
-        }}
-      />
-      
-      <style>{`
-        @keyframes fadeInBG {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
+  const openStatus = useCallback((applicationId: string, key: string) => {
+    window.history.pushState({}, '', `${window.location.pathname}?corporate=${encodeURIComponent(applicationId)}&key=${encodeURIComponent(key)}`);
+    setRoute({ kind: 'status', applicationId, key });
+    window.scrollTo({ top: 0 });
+  }, []);
 
-      {/* Cinematic Overlays */}
-      <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
-
-      {/* Header Logo — Z-Qamar for Interest-Free Banking products (white card: the logo has a white background) */}
-      <div className="relative z-10 w-full max-w-2xl flex justify-center mb-6 sm:mb-10">
-        {ifb ? (
-          <div className="bg-white rounded-xl px-3 py-1 shadow-2xl">
-            <img
-              src="/IFB_logo.png"
-              alt="Zemen Bank Z-Qamar Interest-Free Banking"
-              className="h-8 sm:h-10 object-contain"
-            />
-          </div>
-        ) : (
-          <img
-            src="/zblogo.png"
-            alt="Zemen Bank"
-            className="h-10 object-contain drop-shadow-2xl"
-          />
-        )}
-      </div>
-
-      {/* Progress Indicator */}
-      {step > Step.Welcome && step < Step.Success && (
-        <div className="relative z-10 w-full max-w-2xl mb-6 sm:mb-14 px-1 sm:px-4">
-          <ProgressBar currentStep={step} totalSteps={Step.Success - 1} />
-        </div>
-      )}
-
-      {/* Referral Banner */}
-      {referrerName && step > Step.Landing && step < Step.Success && (
-        <div className="relative z-10 w-full max-w-2xl mb-3 px-4">
-          <div className="bg-amber-500/90 backdrop-blur-sm text-white rounded-2xl px-5 py-2.5 text-center text-sm font-medium shadow-lg">
-            <span className="opacity-80">Referred by</span> <span className="font-bold">{referrerName}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <main className="relative z-10 w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-3xl sm:rounded-[2.5rem] shadow-[0_50px_120px_-30px_rgba(0,0,0,0.8)] border border-white/30 overflow-hidden min-h-[500px] flex flex-col transition-all duration-500">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="relative z-10 mt-8 sm:mt-12 text-[10px] font-black uppercase tracking-[0.4em] text-white/60 text-center drop-shadow-md">
-        &copy; {new Date().getFullYear()} Zemen Bank S.C.
-      </footer>
-    </div>
-  );
+  switch (route.kind) {
+    case 'invite':
+      return <InviteApp token={route.token} onHome={home} />;
+    case 'status':
+      return <StatusPage key={route.applicationId} applicationId={route.applicationId} accessKey={route.key} onHome={home} />;
+    case 'business':
+      return <CorporateApp onExit={home} onOpenStatus={openStatus} />;
+    default:
+      return <IndividualApp onStartBusiness={startBusiness} />;
+  }
 };
 
 export default App;
