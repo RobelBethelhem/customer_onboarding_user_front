@@ -165,8 +165,12 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         </Section>
 
         {/* Branch */}
-        <Section title="Branch" icon={<MapPin className="w-4 h-4" />} onEdit={() => onEdit(Step.Branch)}>
+        <Section title="Branch" icon={<MapPin className="w-4 h-4" />}
+          onEdit={state.hasExistingAccount && state.branchFromCif ? undefined : () => onEdit(Step.Branch)}>
           <Row label="Home Branch" value={selectedBranch?.name || '—'} />
+          {state.hasExistingAccount && state.branchFromCif && (
+            <p className="text-xs text-gray-500">Your home branch in our records — the new account is opened there.</p>
+          )}
           <Row label="Branch Code" value={selectedBranch?.branchCode || '—'} />
           {isIfbAccountType(selectedAccountType) && selectedBranch?.ifbCode && (
             <Row label="IFB Branch Code" value={selectedBranch.ifbCode} />

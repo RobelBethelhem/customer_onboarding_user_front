@@ -57,6 +57,7 @@ function upgradeSavedState(saved: OnboardingState): OnboardingState {
     faceVerificationToken: state.faceVerificationToken || '',
     livenessFrames: state.livenessFrames || [],
     faceMatched: state.faceMatched ?? null,
+    branchFromCif: state.branchFromCif ?? false,
   };
   return state;
 }
@@ -181,13 +182,17 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
   // Steps to skip (commented-out steps)
   const SKIPPED_STEPS = new Set([Step.Documents]);
 
+  // Existing customer whose home branch came from FlexCube: no branch to choose
+  const skipped = (s: OnboardingState, step: number) =>
+    SKIPPED_STEPS.has(step) || (step === Step.Branch && !!s.hasExistingAccount && !!s.branchFromCif);
+
   const nextStep = useCallback(() => {
     setState(prev => {
       if (editReturn !== null) {
         return { ...prev, currentStep: editReturn };
       }
       let next = prev.currentStep + 1;
-      while (SKIPPED_STEPS.has(next)) next++;
+      while (skipped(prev, next)) next++;
       return { ...prev, currentStep: next };
     });
     setEditReturn(null);
@@ -198,7 +203,7 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
     setEditReturn(null);
     setState(prev => {
       let next = prev.currentStep - 1;
-      while (SKIPPED_STEPS.has(next) && next > Step.Landing) next--;
+      while (skipped(prev, next) && next > Step.Landing) next--;
       return { ...prev, currentStep: Math.max(Step.Landing, next) };
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });

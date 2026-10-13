@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { UserCheck, UserPlus, Info, CheckCircle2 } from 'lucide-react';
-import { OnboardingState } from '../types';
+import { UserCheck, UserPlus, Info, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import { Branch, OnboardingState } from '../types';
+import { faydaService, branchService } from '../services/api';
+import { BRANCHES } from '../constants';
 
 interface Props {
   state: OnboardingState;
@@ -14,11 +17,24 @@ type IdType = 'account' | 'cif';
 // Account number layout: BRN(3) + product(3) + CIF(7) + SEQ(3) — the CIF is digits 7–13
 const cifFromAccountNumber = (accountNumber: string) => accountNumber.substring(6, 13);
 
+/**
+ * The branch directory entry of a FlexCube home branch code. An IFB code (e.g. 664) gives its
+ * conventional branch — interest-free accounts are mapped back to the IFB code when submitted.
+ */
+async function homeBranch(code: string): Promise<Branch> {
+  let list: Branch[] = [];
+  try { list = (await branchService.list()).data || []; } catch { list = BRANCHES; }
+  return list.find(b => b.branchCode === code) || list.find(b => b.ifbCode === code)
+    || { id: 0, name: `Branch ${code}`, category: 'City', type: 'Branch', latitude: null, longitude: null, branchCode: code };
+}
+
 const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
   const [hasAccount, setHasAccount] = useState<boolean | null>(state.hasExistingAccount ?? null);
   const [idType, setIdType] = useState<IdType>(state.existingCif && !state.existingAccountNumber ? 'cif' : 'account');
   const [value, setValue] = useState(state.existingAccountNumber || state.existingCif || '');
   const [touched, setTouched] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [lookupError, setLookupError] = useState('');
 
   const requiredLength = idType === 'account' ? 16 : 7;
   const isValid = value.length === requiredLength;
@@ -32,12 +48,39 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
     setTouched(false);
   };
 
-  const handleContinue = () => {
-    if (!canContinue) return;
-    onUpdate(hasAccount
-      ? { hasExistingAccount: true, existingAccountNumber: idType === 'account' ? value : '', existingCif: cif }
-      : { hasExistingAccount: false, existingAccountNumber: '', existingCif: '' });
-    onNext();
+  const handleContinue = async () => {
+    if (!canContinue || checking) return;
+    if (!hasAccount) {
+      // a branch taken from a CIF earlier is no longer theirs to keep: they choose one
+      onUpdate({
+        hasExistingAccount: false, existingAccountNumber: '', existingCif: '', branchFromCif: false,
+        ...(state.branchFromCif ? { selectedBranch: null } : {}),
+      });
+      onNext();
+      return;
+    }
+    const existing = { hasExistingAccount: true, existingAccountNumber: idType === 'account' ? value : '', existingCif: cif };
+    setChecking(true);
+    setLookupError('');
+    try {
+      // The new account opens at the customer's home branch in FlexCube — no branch to choose
+      const r = await faydaService.customerBranch(cif, idType === 'account' ? value : undefined);
+      if (!r.found) {
+        setLookupError(r.message || 'No account was found with this number. Please check it and try again.');
+        return;
+      }
+      const branch = await homeBranch(r.branchCode!);
+      onUpdate({ ...existing, selectedBranch: branch, branchFromCif: true });
+      toast.success(`Your new account will be opened at your home branch: ${branch.name}`);
+      onNext();
+    } catch {
+      // FlexCube cannot be reached right now: choose the branch as usual (the bank checks the CIF on submission)
+      toast.info('We could not check your home branch right now — please choose your branch.');
+      onUpdate({ ...existing, branchFromCif: false });
+      onNext();
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -83,7 +126,7 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
                 autoComplete="off"
                 placeholder={'0'.repeat(requiredLength)}
                 value={value}
-                onChange={e => setValue(e.target.value.replace(/\D/g, '').slice(0, requiredLength))}
+                onChange={e => { setValue(e.target.value.replace(/\D/g, '').slice(0, requiredLength)); setLookupError(''); }}
                 onBlur={() => setTouched(true)}
                 className="w-full text-center text-xl sm:text-2xl font-mono py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand/10 tracking-widest transition-all"
               />
@@ -93,6 +136,12 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
                 </p>
               )}
             </div>
+
+            {lookupError && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {lookupError}
+              </div>
+            )}
 
             {idType === 'account' && cif && (
               <div className="flex items-center gap-2 p-3 bg-brand-50 border border-brand-100 rounded-xl text-sm">
@@ -105,8 +154,9 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
             <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700 leading-relaxed">
-                Your new account will be opened under your existing customer profile (CIF) — no new customer
-                profile is created. We check the CIF against our records and your Fayda ID before opening the account.
+                Your new account will be opened under your existing customer profile (CIF), at your home branch —
+                no new customer profile is created. We check the CIF against our records and your Fayda ID before
+                opening the account.
               </p>
             </div>
           </div>
@@ -119,10 +169,11 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         </button>
         <button
           onClick={handleContinue}
-          disabled={!canContinue}
-          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${canContinue ? 'bg-brand shadow-lg shadow-brand-200 hover:bg-brand-dark' : 'bg-gray-300 cursor-not-allowed'}`}
+          disabled={!canContinue || checking}
+          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${canContinue && !checking ? 'bg-brand shadow-lg shadow-brand-200 hover:bg-brand-dark' : 'bg-gray-300 cursor-not-allowed'}`}
         >
-          Continue
+          {checking && <Loader2 className="w-4 h-4 animate-spin" />}
+          {checking ? 'Checking your account…' : 'Continue'}
         </button>
       </div>
     </div>

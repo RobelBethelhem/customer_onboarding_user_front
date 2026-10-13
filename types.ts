@@ -115,6 +115,7 @@ export interface OnboardingState {
   hasExistingAccount: boolean | null; // null until answered
   existingAccountNumber: string;      // 16-digit account number, if they gave one
   existingCif: string;                // 7-digit CIF (entered, or taken from the account number)
+  branchFromCif?: boolean;            // the branch is the CIF's home branch in FlexCube — the Branch step is skipped
   // Optional services, set up by the branch Personal Banker after the account is opened
   requestedServices: string[];        // service ids from the catalog, e.g. 'mobile_banking'
   selectedServices: { id: string; name: string; icon: string }[]; // the same services, for the review screens

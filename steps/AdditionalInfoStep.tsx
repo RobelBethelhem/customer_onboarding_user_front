@@ -59,6 +59,15 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
     return '';
   };
 
+  // TIN: numbers only (letters and other characters are dropped as they are typed)
+  const tinCheck = (tin: string) => (tin && tin.length !== 10 ? 'The TIN has 10 digits' : '');
+  const [tinError, setTinError] = useState('');
+  const handleTinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+    onUpdate({ additionalInfo: { ...info, taxIdentity: digits } });
+    if (tinError) setTinError(tinCheck(digits));
+  };
+
   const handleMotherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let { value } = e.target;
 
@@ -126,8 +135,9 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
 
     const isMotherNameValid = !validateMotherName(info.motherMaidenName || '');
     const isEmailValid = isValidEmail(info.email || '');
+    const isTinValid = !tinCheck(info.taxIdentity || '');
 
-    return hasAllRequired && otherFieldsValid && isMotherNameValid && isEmailValid;
+    return hasAllRequired && otherFieldsValid && isMotherNameValid && isEmailValid && isTinValid;
   };
 
   const handleNext = () => {
@@ -139,6 +149,11 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
       return;
     }
     if (!isValidEmail(info.email || '')) {
+      return;
+    }
+    const tinProblem = tinCheck(info.taxIdentity || '');
+    if (tinProblem) {
+      setTinError(tinProblem);
       return;
     }
     onNext();
@@ -191,14 +206,19 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
             )}
           </div>
 
-          <InputGroup
-            label="Tax Identity Number (TIN)"
-            name="taxIdentity"
-            value={info.taxIdentity}
-            onChange={handleChange}
-            placeholder="Optional"
-            icon={<Tag className="w-4 h-4" />}
-          />
+          <div>
+            <InputGroup
+              label="Tax Identity Number (TIN)"
+              name="taxIdentity"
+              value={info.taxIdentity}
+              onChange={handleTinChange}
+              placeholder="Optional — 10 digits"
+              inputMode="numeric"
+              maxLength={10}
+              icon={<Tag className="w-4 h-4" />}
+            />
+            {tinError && <p className="text-red-500 text-xs mt-1 ml-1">{tinError}</p>}
+          </div>
 
           <InputGroup
             label="Monthly Income (ETB)"
@@ -318,7 +338,7 @@ const AdditionalInfoStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }
   );
 };
 
-const InputGroup = ({ label, name, value, onChange, onBlur, placeholder, type = "text", required, icon }: any) => (
+const InputGroup = ({ label, name, value, onChange, onBlur, placeholder, type = "text", required, icon, inputMode, maxLength }: any) => (
   <div className="space-y-1">
     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
       {label} {required && '*'}
@@ -332,6 +352,8 @@ const InputGroup = ({ label, name, value, onChange, onBlur, placeholder, type = 
         onChange={onChange}
         onBlur={onBlur}
         placeholder={placeholder}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className={`w-full ${icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/10 font-semibold transition-all`}
       />
     </div>

@@ -291,6 +291,11 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
     return { status: 200, body: { success: true, passed: true, matched: true, similarity: 0.87, antiSpoofScore: 0.96, failed: null, message: 'Face verified (demo)', token: `demo-face-${rand()}` } };
   }
   if (path === '/api/face/upload-video') return { status: 200, body: { success: true, videoId: `demo-video-${rand()}` } };
+  if (path === '/api/flexcube/customer-branch') {
+    // demo: CIF 0000000 is "not found"; any other CIF's home branch is the first branch of the list
+    if (body?.cif === '0000000') return { status: 404, body: { success: false, found: false, message: 'No account was found with this number. Please check it and try again.' } };
+    return { status: 200, body: { success: true, found: true, branchCode: BRANCHES[0].branchCode } };
+  }
   if (path === '/api/flexcube/create-customer') {
     return { status: 200, body: { success: true, status: 'pending', customerId: `DEMO-${rand(6)}`, message: 'Application received (demo)' } };
   }

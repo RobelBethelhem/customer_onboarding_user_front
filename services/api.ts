@@ -143,6 +143,27 @@ export const faydaService = {
   verifyLiveness: (data: { selfie: string; frames: LivenessFrame[]; faydaPhoto: string }) =>
     postRequest<LivenessVerifyResult>('/api/face/verify-liveness', data),
 
+  /**
+   * Home branch of an existing customer (FlexCube STTM_CUSTOMER.LOCAL_BRANCH). `found: false` when
+   * no such customer / account; throws when it could not be checked (FlexCube unreachable).
+   */
+  customerBranch: async (cif: string, accountNumber?: string): Promise<{ found: boolean; branchCode?: string; message?: string }> => {
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/flexcube/customer-branch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cif, accountNumber: accountNumber || undefined }),
+      });
+    } catch {
+      throw new Error('We could not check your account right now. Please check your connection.');
+    }
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.found) return { found: true, branchCode: String(data.branchCode) };
+    if (response.status === 404 || response.status === 400) return { found: false, message: data.message };
+    throw new Error(data.message || 'We could not check your account right now.');
+  },
+
   submitOnboarding: (payload: any) =>
     postRequest<{ success: boolean; customerNumber?: string; customerId?: string; status: string; message?: string }>('/api/flexcube/create-customer', payload),
 };

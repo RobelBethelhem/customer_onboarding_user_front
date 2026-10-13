@@ -39,6 +39,7 @@ export const INITIAL_STATE: OnboardingState = {
   hasExistingAccount: null,
   existingAccountNumber: '',
   existingCif: '',
+  branchFromCif: false,
   requestedServices: [],
   selectedServices: [],
   serviceTermsAccepted: [],
