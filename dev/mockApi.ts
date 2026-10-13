@@ -307,6 +307,8 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
   if (path === '/api/flexcube/customer-branch') {
     // demo: CIF 0000000 is "not found"; any other CIF's home branch is the first branch of the list
     if (body?.cif === '0000000') return { status: 404, body: { success: false, found: false, message: 'No account was found with this number. Please check it and try again.' } };
+    // demo: CIF 1111111 has a frozen / No-Debit account
+    if (body?.cif === '1111111') return { status: 409, body: { success: false, found: true, restricted: true, message: 'One of your accounts is frozen. Please visit a Zemen Bank branch to continue.' } };
     return { status: 200, body: { success: true, found: true, branchCode: BRANCHES[0].branchCode } };
   }
   if (path === '/api/flexcube/create-customer') {

@@ -69,6 +69,10 @@ const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
         setLookupError(r.message || 'No account was found with this number. Please check it and try again.');
         return;
       }
+      if (r.restricted) {
+        setLookupError(r.message || 'One of your accounts is frozen or on No-Debit. Please visit a Zemen Bank branch to continue.');
+        return;
+      }
       const branch = await homeBranch(r.branchCode!);
       onUpdate({ ...existing, selectedBranch: branch, branchFromCif: true });
       toast.success(`Your new account will be opened at your home branch: ${branch.name}`);

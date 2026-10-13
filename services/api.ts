@@ -147,7 +147,7 @@ export const faydaService = {
    * Home branch of an existing customer (FlexCube STTM_CUSTOMER.LOCAL_BRANCH). `found: false` when
    * no such customer / account; throws when it could not be checked (FlexCube unreachable).
    */
-  customerBranch: async (cif: string, accountNumber?: string): Promise<{ found: boolean; branchCode?: string; message?: string }> => {
+  customerBranch: async (cif: string, accountNumber?: string): Promise<{ found: boolean; branchCode?: string; message?: string; restricted?: boolean }> => {
     let response: Response;
     try {
       response = await fetch(`${API_BASE_URL}/api/flexcube/customer-branch`, {
@@ -160,6 +160,8 @@ export const faydaService = {
     }
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.found) return { found: true, branchCode: String(data.branchCode) };
+    // an account of the CIF is frozen or on No-Debit: the customer must go to the branch
+    if (response.status === 409 && data.restricted) return { found: true, restricted: true, message: data.message };
     if (response.status === 404 || response.status === 400) return { found: false, message: data.message };
     throw new Error(data.message || 'We could not check your account right now.');
   },
