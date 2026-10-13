@@ -16,8 +16,9 @@ interface SavedSession<T = OnboardingState> {
   savedAt: number;
 }
 
-// Entries: 'current' (individual account), 'business' (business account), 'invite' (verification link)
-type SessionKey = 'current' | 'business' | 'invite';
+// Entries: 'current' (individual account), 'business' (business account), 'invite' (verification link),
+// 'submitted' (copy of the last individual application sent from this device — opened again to amend it)
+type SessionKey = 'current' | 'business' | 'invite' | 'submitted';
 
 // --- IndexedDB helpers ---
 

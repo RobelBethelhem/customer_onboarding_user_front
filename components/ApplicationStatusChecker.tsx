@@ -3,7 +3,7 @@ import { applicationService, ApplicationStatusResult } from '../services/api';
 
 interface Props {
   /** Called when the applicant chooses to continue & amend a returned/rejected application */
-  onContinue: () => void;
+  onContinue: (applicationId: string, reason: string) => void;
 }
 
 const ApplicationStatusChecker: React.FC<Props> = ({ onContinue }) => {
@@ -104,7 +104,7 @@ const ApplicationStatusChecker: React.FC<Props> = ({ onContinue }) => {
 
           {result.canAmend && (
             <button
-              onClick={onContinue}
+              onClick={() => onContinue(result.applicationId, result.reason || '')}
               className="w-full py-3 rounded-xl font-semibold text-sm bg-[#ed1c24] text-white hover:bg-[#B01A3A] transition-all shadow-lg shadow-red-500/25"
             >
               Continue &amp; Amend Application

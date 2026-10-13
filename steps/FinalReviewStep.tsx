@@ -148,6 +148,14 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         <p className="text-sm text-gray-500">Confirm all details below before final submission. Tap edit to change any section.</p>
       </div>
 
+      {state.amendApplicationId && (
+        <div className="mx-6 mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
+          <p className="font-bold">Amending application {state.amendApplicationId}</p>
+          {state.amendReason && <p className="mt-1"><span className="font-semibold">Our team asked:</span> {state.amendReason}</p>}
+          <p className="mt-1 text-amber-800">Tap <b>Edit</b> on the part to change, fix it, and you come back here. Then submit again.</p>
+        </div>
+      )}
+
       <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-5">
 
         {/* Existing customer */}

@@ -116,6 +116,11 @@ export interface OnboardingState {
   existingAccountNumber: string;      // 16-digit account number, if they gave one
   existingCif: string;                // 7-digit CIF (entered, or taken from the account number)
   branchFromCif?: boolean;            // the branch is the CIF's home branch in FlexCube — the Branch step is skipped
+  // Amending an application KYC returned: its ID and the reviewer's note. On another device the
+  // answers come from the bank after the Fayda OTP (amendLoaded), then face check → Final Review.
+  amendApplicationId?: string;
+  amendReason?: string;
+  amendLoaded?: boolean;
   // Optional services, set up by the branch Personal Banker after the account is opened
   requestedServices: string[];        // service ids from the catalog, e.g. 'mobile_banking'
   selectedServices: { id: string; name: string; icon: string }[]; // the same services, for the review screens

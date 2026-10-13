@@ -7,7 +7,8 @@ import AppShell from './components/AppShell';
 import WizardWrapper from './components/WizardWrapper';
 import ResumeModal from './components/ResumeModal';
 import { saveSession, loadSession, clearSession } from './services/sessionStore';
-import { referralService } from './services/api';
+import { referralService, applicationService, branchService, productService, additionalServicesService } from './services/api';
+import { BRANCHES } from './constants';
 import { isIfbAccountType } from './constants';
 import LandingPage from './steps/LandingPage';
 import WelcomeStep from './steps/WelcomeStep';
@@ -130,12 +131,83 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
     };
   }, [state]);
 
-  // Clear saved session when user reaches Success
+  // Reaching Success: the in-progress session is done; keep a copy of what was sent, so that if
+  // KYC returns the application it opens again on Final Review (nothing to fill in again)
   useEffect(() => {
     if (state.currentStep === Step.Success) {
+      if (state.result?.customerId) {
+        saveSession({ ...state, amendApplicationId: '', amendReason: '', amendLoaded: false }, 'submitted');
+      }
       clearSession();
     }
-  }, [state.currentStep]);
+  }, [state.currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "Continue & Amend" a returned application
+  const handleAmend = useCallback(async (applicationId: string, reason: string) => {
+    const copy = await loadSession('submitted');
+    const ref = { referralCode: state.referralCode, referrerName: state.referrerName };
+    if (copy && copy.state.result?.customerId === applicationId) {
+      // Sent from this device: everything is here — straight to Final Review
+      setState({
+        ...upgradeSavedState(copy.state), ...ref, currentStep: Step.FinalReview, result: null,
+        amendApplicationId: applicationId, amendReason: reason, amendLoaded: true,
+      });
+      toast.success('Your application is open. Edit what our team asked for, then submit it again.');
+    } else {
+      // Another device: verify with Fayda first; the answers then come from the bank
+      setState({ ...INITIAL_STATE, ...ref, currentStep: Step.FaydaId, amendApplicationId: applicationId, amendReason: reason, amendLoaded: false });
+      toast.info('Verify with your Fayda ID to open your application.');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [state.referralCode, state.referrerName]);
+
+  // Amending on another device: after the Fayda OTP, fill the form with what was sent
+  useEffect(() => {
+    if (!state.amendApplicationId || state.amendLoaded || !state.ekycToken) return;
+    const applicationId = state.amendApplicationId;
+    (async () => {
+      try {
+        const { data } = await applicationService.amendData(applicationId, state.ekycToken!);
+        const f = data.form;
+        const [branches, products, services] = await Promise.all([
+          branchService.list().then(r => r.data || []).catch(() => BRANCHES),
+          productService.list().catch(() => []),
+          additionalServicesService.list().catch(() => []),
+        ]);
+        const branch = branches.find(b => b.branchCode === f.branchCode) || branches.find(b => b.ifbCode === f.branchCode) || null;
+        const product = products.find(p => p.id === f.accountTypeId) || null;
+        const tier = product?.tiers.find(t => t.code === f.accountClassCode) || null;
+        setState(prev => ({
+          ...prev,
+          amendLoaded: true,
+          amendReason: prev.amendReason || data.reason,
+          selectedBranch: branch,
+          selectedAccountType: product,
+          selectedTier: tier,
+          hasExistingAccount: f.isExistingCustomer,
+          existingCif: f.existingCif,
+          existingAccountNumber: f.existingAccountNumber,
+          branchFromCif: f.isExistingCustomer && !!branch,
+          additionalInfo: {
+            ...prev.additionalInfo,
+            motherMaidenName: f.motherMaidenName, email: f.email, taxIdentity: (f.taxIdentity || '').replace(/\D/g, '').slice(0, 10),
+            annualIncome: f.monthlyIncome ? String(f.monthlyIncome) : '',
+            occupation: f.occupation, otherOccupation: f.otherOccupation, industry: f.industry, otherIndustry: f.otherIndustry,
+            wealthSource: f.wealthSource, otherWealthSource: f.otherWealthSource, maritalStatus: f.maritalStatus,
+            promotionType: f.promotionType,
+          },
+          requestedServices: f.requestedServices,
+          selectedServices: services.filter(s => f.requestedServices.includes(s.id)).map(s => ({ id: s.id, name: s.name, icon: s.icon })),
+          serviceTermsAccepted: f.serviceTermsAccepted.map(a => ({ ...a, acceptedAt: String(a.acceptedAt || '') })),
+        }));
+        toast.success('Your application is loaded. After the face check you can review and change it.');
+      } catch (e: any) {
+        // Not theirs, not waiting for changes, or unreachable: continue as a new application form
+        toast.error(`${e?.message || 'Your application could not be opened'} — please fill in the form.`);
+        setState(prev => ({ ...prev, amendApplicationId: '', amendReason: '', amendLoaded: false }));
+      }
+    })();
+  }, [state.amendApplicationId, state.amendLoaded, state.ekycToken]);
 
   // Called when user clicks "Start Onboarding" / "Open Account" on the landing page
   const handleStartOnboarding = useCallback(() => {
@@ -191,6 +263,11 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
       if (editReturn !== null) {
         return { ...prev, currentStep: editReturn };
       }
+      // Amending (answers loaded): Fayda review → face check → Final Review
+      if (prev.amendApplicationId && prev.amendLoaded) {
+        if (prev.currentStep === Step.Review) return { ...prev, currentStep: Step.FaceVerify };
+        if (prev.currentStep === Step.FaceVerify) return { ...prev, currentStep: Step.FinalReview };
+      }
       let next = prev.currentStep + 1;
       while (skipped(prev, next)) next++;
       return { ...prev, currentStep: next };
@@ -229,7 +306,7 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
   const renderStep = useMemo(() => {
     switch (state.currentStep) {
       case Step.Landing:
-        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} />;
+        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} onAmend={handleAmend} />;
       case Step.Welcome:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
@@ -311,9 +388,9 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
           </WizardWrapper>
         );
       default:
-        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} />;
+        return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} onAmend={handleAmend} />;
     }
-  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness]);
+  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness, handleAmend]);
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)

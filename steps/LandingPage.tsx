@@ -32,9 +32,10 @@ import ApplicationStatusChecker from '../components/ApplicationStatusChecker';
 interface LandingPageProps {
   onStart: () => void;
   onStartBusiness?: () => void; // business account application (organizations)
+  onAmend?: (applicationId: string, reason: string) => void; // "Continue & Amend" a returned application
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onStart, onStartBusiness }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onStart, onStartBusiness, onAmend }) => {
   const [scrollY, setScrollY] = useState(0);
   const [isIntroFinished, setIsIntroFinished] = useState(false);
   const [appBooted, setAppBooted] = useState(false);
@@ -442,7 +443,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onStartBusiness }) =
 
           {/* Track / continue an existing application */}
           <div className="max-w-md mx-auto mt-8">
-            <ApplicationStatusChecker onContinue={onStart} />
+            <ApplicationStatusChecker onContinue={(id, reason) => (onAmend ? onAmend(id, reason) : onStart())} />
           </div>
         </div>
       </section>

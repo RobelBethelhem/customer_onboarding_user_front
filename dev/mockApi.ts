@@ -264,7 +264,20 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
     if (path === '/api/account-products') return ok(q.get('for') === 'organization' ? PRODUCTS_ORG : PRODUCTS_INDIVIDUAL);
     if (path === '/api/additional-services') return ok(SERVICES);
     if (path.startsWith('/api/referrals/')) return ok({ valid: false });
-    if (path === '/api/applications/status') return { status: 200, body: { success: true, found: false } };
+    // demo: every application ID is "returned" by KYC, so "Continue & Amend" can be tried
+    if (path === '/api/applications/status') {
+      return { status: 200, body: { success: true, found: true, data: {
+        applicationId: q.get('appId') || '', fullName: 'DEMO APPLICANT', status: 'returned', statusLabel: 'Returned for Amendment',
+        reason: 'Please correct your TIN and email address.', canAmend: true, customerNumber: null } } };
+    }
+    if (path === '/api/applications/amend') {
+      const p = PRODUCTS_INDIVIDUAL[0];
+      return ok({ applicationId: body?.applicationId, reason: 'Please correct your TIN and email address.', form: {
+        branchCode: BRANCHES[0].branchCode, accountTypeId: p.id, accountClassCode: p.classes[0].code, email: 'old@example.com',
+        taxIdentity: '0012345678', monthlyIncome: 25000, occupation: 'O', otherOccupation: 'TRADER', industry: 'WHL', otherIndustry: '',
+        wealthSource: 'SAL', otherWealthSource: '', motherMaidenName: 'ALMAZ', maritalStatus: 'S', promotionType: 'Walk in customer',
+        isExistingCustomer: false, existingCif: '', existingAccountNumber: '', requestedServices: ['mobile_banking'], serviceTermsAccepted: [] } });
+    }
     return err('Not available in demo mode', 404);
   }
 

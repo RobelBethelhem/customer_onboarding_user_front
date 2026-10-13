@@ -367,8 +367,21 @@ export const additionalServicesService = {
   },
 };
 
+export interface AmendForm {
+  branchCode: string; accountTypeId: string; accountClassCode: string; email: string; taxIdentity: string;
+  monthlyIncome: number; occupation: string; otherOccupation: string; industry: string; otherIndustry: string;
+  wealthSource: string; otherWealthSource: string; motherMaidenName: string; maritalStatus: string; promotionType: string;
+  isExistingCustomer: boolean; existingCif: string; existingAccountNumber: string;
+  requestedServices: string[]; serviceTermsAccepted: { id: string; version: number; acceptedAt: string }[];
+}
+
 export const applicationService = {
   /** Look up an application's status by Application ID + phone number */
   checkStatus: (appId: string, phone: string) =>
     dashboardGet<ApplicationStatusResult>(`/api/applications/status?appId=${encodeURIComponent(appId)}&phone=${encodeURIComponent(phone)}`),
+
+  /** What was filled in on a returned application — only for its owner, just verified with Fayda */
+  amendData: (applicationId: string, ekycToken: string) =>
+    dashboardPost<{ success: boolean; data: { applicationId: string; reason: string; form: AmendForm } }>(
+      '/api/applications/amend', { applicationId, ekycToken }),
 };

@@ -75,7 +75,8 @@ State auto-saves to **IndexedDB** (DB `zemen-onboarding`, store `sessions`), **A
 
 - Auto-save is debounced 800ms (`App.tsx`), and only for steps `Branch ≤ currentStep < Success`.
 - On mount, a saved session at step ≥ Branch triggers `ResumeModal` ("resume" vs "start fresh") when the user starts onboarding.
-- Reaching `Success` clears the session. All storage operations fail silently (best-effort).
+- Reaching `Success` clears the session and keeps a copy of what was sent under `submitted`. All storage operations fail silently (best-effort).
+- **Amending a returned application** (landing page → Track Your Application → *Continue & Amend*, `handleAmend` in `App.tsx`): if the `submitted` copy is for that Application ID, the wizard opens it straight on **Final Review** (`amendApplicationId` / `amendReason`, banner with the reviewer's note) — the customer taps *Edit* on the part to fix and comes back. On another device: Fayda ID → OTP first, then `applicationService.amendData` (`POST api2/api/applications/amend`, answers only to the same Fayda ID) fills the form (`amendLoaded`), then the face check → Final Review. The dashboard amends the application in place on resubmission (matched by Fayda ID).
 
 ### API Layer (`services/api.ts`)
 
