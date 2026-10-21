@@ -2,7 +2,7 @@ import React from 'react';
 import { Building2, MapPin, Wallet, Users, FileText, User, ShieldCheck, AlertTriangle, Pencil } from 'lucide-react';
 import type { CorporateCatalog, CorporateState } from '../types';
 import { CorporateStep, documentsFor, personName } from '../types';
-import { INDUSTRIES } from '../../constants';
+import { INDUSTRIES, currencyLabel } from '../../constants';
 import { SOURCES_OF_FUNDS, SIGNING_RULES, roleText, normalizeMobile } from '../constants';
 import { StepFrame, Section, Row, toDataUri } from '../ui';
 
@@ -84,6 +84,9 @@ const CorporateReviewStep: React.FC<Props> = ({ state, catalog, update, onEdit, 
         <Row label="Branch" value={id.selectedBranch?.name} />
         <Row label="Account" value={id.selectedAccountType?.name} />
         <Row label="Class" value={id.selectedTier?.name} />
+        {!!id.selectedTier?.currencies?.length && (
+          <Row label="Currency" value={id.selectedCurrency ? currencyLabel(id.selectedCurrency) : 'Not chosen'} />
+        )}
       </Section>
 
       <Section title="Signatories & Directors" icon={<Users className="w-3.5 h-3.5" />} action={edit(CorporateStep.People)}>

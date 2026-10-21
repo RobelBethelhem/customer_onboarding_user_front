@@ -6,6 +6,7 @@ export const INITIAL_STATE: OnboardingState = {
   selectedBranch: null,
   selectedAccountType: null,
   selectedTier: null,
+  selectedCurrency: '',
   fcn: '',
   token: '',
   faydaData: null,

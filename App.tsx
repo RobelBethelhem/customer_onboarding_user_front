@@ -59,6 +59,7 @@ function upgradeSavedState(saved: OnboardingState): OnboardingState {
     livenessFrames: state.livenessFrames || [],
     faceMatched: state.faceMatched ?? null,
     branchFromCif: state.branchFromCif ?? false,
+    selectedCurrency: state.selectedCurrency || '',
   };
   return state;
 }
@@ -184,6 +185,7 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
           selectedBranch: branch,
           selectedAccountType: product,
           selectedTier: tier,
+          selectedCurrency: tier?.currencies.includes(f.currency || '') ? f.currency! : '',
           hasExistingAccount: f.isExistingCustomer,
           existingCif: f.existingCif,
           existingAccountNumber: f.existingAccountNumber,

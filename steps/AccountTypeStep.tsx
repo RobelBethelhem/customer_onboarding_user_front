@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Star, Info, ChevronDown, Percent, Wallet, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { OnboardingState, AccountType, AccountTier } from '../types';
 import { productService, formatRate } from '../services/api';
+import { CURRENCY_NAMES } from '../constants';
 
 interface Props {
   state: OnboardingState;
@@ -12,6 +13,14 @@ interface Props {
   audience?: 'individual' | 'organization'; // business account wizard: products for organizations
   allowedClasses?: string[] | null;          // business: the classes this kind of organization may open (null = all)
 }
+
+// Foreign currency (FCY) class: keep the chosen currency while the class still offers it, take the
+// only one there is, otherwise the customer chooses. ETB classes: none.
+const currencyFor = (tier: AccountTier | null | undefined, current: string): string => {
+  const offered = tier?.currencies || [];
+  if (offered.includes(current)) return current;
+  return offered.length === 1 ? offered[0] : '';
+};
 
 const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, audience, allowedClasses }) => {
   // Products come from the bank's catalog (dashboard → Account Products), in the order KYC set
@@ -29,9 +38,10 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
       const acc = list.find(a => a.id === state.selectedAccountType?.id);
       const tier = acc?.tiers.find(t => t.id === state.selectedTier?.id);
       if (state.selectedAccountType && (!acc || !tier)) {
-        onUpdate({ selectedAccountType: null, selectedTier: null });
+        onUpdate({ selectedAccountType: null, selectedTier: null, selectedCurrency: '' });
       } else if (acc && tier) {
-        onUpdate({ selectedAccountType: acc, selectedTier: tier }); // pick up changed rates
+        // pick up changed rates and currencies
+        onUpdate({ selectedAccountType: acc, selectedTier: tier, selectedCurrency: currencyFor(tier, state.selectedCurrency) });
       }
     } catch {
       setLoadError('We could not load the account types. Please check your connection and try again.');
@@ -44,17 +54,20 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
 
   const handleAccountChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const acc = products.find(a => a.id === e.target.value) || null;
-    onUpdate({ selectedAccountType: acc, selectedTier: acc ? acc.tiers[0] : null });
+    const tier = acc ? acc.tiers[0] : null;
+    onUpdate({ selectedAccountType: acc, selectedTier: tier, selectedCurrency: currencyFor(tier, state.selectedCurrency) });
   };
 
   const handleTierChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const acc = state.selectedAccountType;
     const tier = acc?.tiers.find(t => t.id === e.target.value) || null;
-    onUpdate({ selectedTier: tier });
+    onUpdate({ selectedTier: tier, selectedCurrency: currencyFor(tier, state.selectedCurrency) });
   };
 
   const selectedAccount = state.selectedAccountType;
   const selectedTier = state.selectedTier;
+  const currencies = selectedTier?.currencies || [];
+  const ready = !!selectedTier && (!currencies.length || currencies.includes(state.selectedCurrency));
 
   return (
     <div className="flex flex-col h-full">
@@ -148,7 +161,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
                     <option value="" disabled>Select an account class</option>
                     {selectedAccount.tiers.map((tier: AccountTier) => (
                       <option key={tier.id} value={tier.id}>
-                        {tier.name} ({formatRate(tier.interestRate, selectedAccount.isIFB)})
+                        {tier.name} ({formatRate(tier.interestRate, selectedAccount.isIFB)}){tier.currencies?.length ? ' · Foreign currency' : ''}
                       </option>
                     ))}
                   </select>
@@ -160,6 +173,34 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
                     {selectedTier.remarks && selectedTier.remarks !== selectedTier.range && <p>{selectedTier.remarks}</p>}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Foreign currency (FCY) class: the currency the account is held in */}
+            {selectedAccount && currencies.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Account Currency *</label>
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Account currency">
+                  {currencies.map(code => {
+                    const chosen = state.selectedCurrency === code;
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        role="radio"
+                        aria-checked={chosen}
+                        onClick={() => onUpdate({ selectedCurrency: code })}
+                        className={`py-3 px-2 rounded-xl border-2 text-center transition-all ${chosen ? 'border-brand bg-brand-50 text-brand shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-gray-200'}`}
+                      >
+                        <span className="block text-base font-bold">{code}</span>
+                        <span className={`block text-[10px] font-semibold ${chosen ? 'text-brand' : 'text-gray-500'}`}>{CURRENCY_NAMES[code] || code}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="ml-1 text-xs text-gray-500">
+                  {state.selectedCurrency ? `Your account will be held in ${CURRENCY_NAMES[state.selectedCurrency] || state.selectedCurrency}.` : 'Choose the currency your account will be held in.'}
+                </p>
               </div>
             )}
           </>
@@ -179,7 +220,7 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
         <div className="px-6 py-3 bg-brand-50/50 border-y border-brand-100 flex justify-between items-center gap-3">
           <div className="text-xs min-w-0">
             <span className="text-gray-500">Selected: </span>
-            <span className="font-bold text-gray-800">{selectedTier.name}</span>
+            <span className="font-bold text-gray-800">{selectedTier.name}{currencies.length && state.selectedCurrency ? ` · ${state.selectedCurrency}` : ''}</span>
           </div>
           <div className="text-xs font-bold text-brand whitespace-nowrap">
             {selectedTier.interestRate === null ? formatRate(null, selectedAccount.isIFB) : `${formatRate(selectedTier.interestRate)} p.a.`}
@@ -192,9 +233,9 @@ const AccountTypeStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, aud
           Back
         </button>
         <button
-          disabled={!selectedTier}
+          disabled={!ready}
           onClick={onNext}
-          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${selectedTier ? 'bg-brand shadow-lg shadow-brand-200' : 'bg-gray-300 cursor-not-allowed'}`}
+          className={`flex-[2] py-3 text-white font-bold rounded-xl transition-all ${ready ? 'bg-brand shadow-lg shadow-brand-200' : 'bg-gray-300 cursor-not-allowed'}`}
         >
           Continue
         </button>

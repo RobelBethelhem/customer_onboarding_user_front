@@ -8,6 +8,7 @@ import { OnboardingState, Step } from '../types';
 import { faydaService, formatRate } from '../services/api';
 import {
   OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, chosenServiceNames, isIfbAccountType,
+  currencyLabel,
 } from '../constants';
 
 interface Props {
@@ -42,6 +43,13 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
   const uc = (val: string | undefined | null): string => (val || '').toUpperCase();
 
   const handleSubmit = async () => {
+    // Foreign currency class: the currency must be chosen (e.g. an application saved before it was offered)
+    const currencies = state.selectedTier?.currencies || [];
+    if (currencies.length && !currencies.includes(state.selectedCurrency)) {
+      toast.error('Please choose the currency of your account.');
+      onEdit(Step.AccountType);
+      return;
+    }
     setIsSubmitting(true);
     try {
       // NOTE: field names and derivations below are intentionally identical to the original
@@ -93,6 +101,8 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         tierId: state.selectedTier?.productNumber || '',
         tierName: state.selectedTier?.code || uc(state.selectedTier?.name),
         tierInterestRate: state.selectedTier?.interestRate ?? 0,
+        // Foreign currency (FCY) class: the currency chosen — the bank opens ETB accounts otherwise
+        currency: state.selectedCurrency || '',
         faydaPhoto: state.faydaData?.photo || '',
         selfiePhoto: state.selfiePhoto,
         marriageCertificatePhoto: state.documents.map((d: any) => d.base64).join('|||'),
@@ -190,6 +200,9 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
           <Row label="Product" value={selectedAccountType?.name || '—'} />
           <Row label="Account Class" value={selectedTier ? `${selectedTier.name} (${formatRate(selectedTier.interestRate, selectedAccountType?.isIFB)})` : '—'} />
           <Row label="Balance Range" value={selectedTier?.range || '—'} />
+          {!!selectedTier?.currencies?.length && (
+            <Row label="Currency" value={state.selectedCurrency ? currencyLabel(state.selectedCurrency) : 'Not chosen — tap Edit to choose'} />
+          )}
         </Section>
 
         {/* Verified identity (read-only) */}

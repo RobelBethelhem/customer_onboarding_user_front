@@ -79,6 +79,7 @@ export function validateAccount(state: CorporateState, catalog: CorporateCatalog
   const category = catalog.categories.find(c => c.id === state.organization.categoryId);
   const allowed = accountClassesFor(category, state.organization.subtypeId);
   if (allowed && !allowed.includes(tier.code)) return { account: `${tier.name} is not offered for this type of organization — choose another account` };
+  if (tier.currencies?.length && !tier.currencies.includes(state.identity.selectedCurrency)) return { account: 'Choose the currency of the account' };
   return {};
 }
 

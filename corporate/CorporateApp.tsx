@@ -368,6 +368,7 @@ const CorporateApp: React.FC<Props> = ({ onExit, onOpenStatus }) => {
       branchCode: identity.selectedBranch?.branchCode || '',
       accountTypeId: identity.selectedAccountType?.id || '',
       accountClassCode: identity.selectedTier?.code || '',
+      currency: identity.selectedCurrency || '', // foreign currency (FCY) class only
       signingRule: state.signingRule,
       signingRuleOther: state.signingRule === 'other' ? state.signingRuleOther.trim() : '',
       groupId: state.groupId,

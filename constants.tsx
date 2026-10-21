@@ -168,6 +168,13 @@ export const chosenServiceNames = (state: { requestedServices: string[]; selecte
   (state.requestedServices || []).map(id => state.selectedServices?.find(s => s.id === id)?.name || LEGACY_SERVICE_NAMES[id] || id);
 
 /** True for Interest-Free Banking products (the catalog's IFB flag; "IFB" in the name for sessions saved earlier). */
+// Account currencies: ETB, or for a foreign currency (FCY) account class one of the currencies the bank
+// offers it in (dashboard → Account Products → Currency)
+export const CURRENCY_NAMES: Record<string, string> = {
+  ETB: 'Ethiopian Birr', USD: 'US Dollar', GBP: 'British Pound', EUR: 'Euro',
+};
+export const currencyLabel = (code: string) => `${CURRENCY_NAMES[code] || code} (${code})`;
+
 export const isIfbAccountType = (account: AccountType | null | undefined): boolean =>
   !!account && (account.isIFB === true || /\bIFB\b/i.test(`${account.id} ${account.name}`));
 

@@ -22,6 +22,7 @@ export interface AccountTier {
   minBalance: number | null;
   maxBalance: number | null;
   remarks: string;
+  currencies: string[];        // foreign currency (FCY) class: the currencies to choose from; [] = ETB account
 }
 
 export interface AccountType {
@@ -73,6 +74,7 @@ export interface OnboardingState {
   selectedBranch: Branch | null;
   selectedAccountType: AccountType | null;
   selectedTier: AccountTier | null;
+  selectedCurrency: string;    // FCY class: the currency chosen (USD, GBP, EUR); '' for an ETB account
   fcn: string;
   token: string;
   faydaData: FaydaCustomerData | null;

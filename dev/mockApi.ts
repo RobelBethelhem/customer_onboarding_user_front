@@ -96,19 +96,21 @@ const CATALOG = {
   ],
 };
 
-const cls = (code: string, name: string, interestRate: number | null, minBalance: number | null, productNumber: string) =>
-  ({ code, name, interestRate, minBalance, maxBalance: null, remarks: '', productNumber });
+const cls = (code: string, name: string, interestRate: number | null, minBalance: number | null, productNumber: string, currencies: string[] = []) =>
+  ({ code, name, interestRate, minBalance, maxBalance: null, remarks: '', productNumber, currencies });
 const PRODUCTS_ORG = [
   { id: 'business_current', name: 'Business Current Account', description: 'Cheque account for the daily operations of the organization.', isIFB: false,
     classes: [cls('BCUR', 'Business Current', null, 5000, '210')] },
   { id: 'business_saving', name: 'Business Saving Account', description: 'Interest-bearing savings for organizations.', isIFB: false,
-    classes: [cls('BSAV', 'Business Saving', 7, 1000, '211'), cls('BSVP', 'Business Saving Plus', 8.5, 500000, '212')] },
+    classes: [cls('BSAV', 'Business Saving', 7, 1000, '211'), cls('BSVP', 'Business Saving Plus', 8.5, 500000, '212'),
+      cls('BFCY', 'Business Foreign Currency Account', null, null, '213', ['USD', 'GBP', 'EUR'])] },
   { id: 'ifb_business', name: 'Z-Qamar Business Wadiah Account', description: 'Interest-free account for organizations (Interest-Free Banking).', isIFB: true,
     classes: [cls('IBWD', 'Business Wadiah', null, 1000, '971')] },
 ];
 const PRODUCTS_INDIVIDUAL = [
   { id: 'saving-account', name: 'Saving Account', description: 'Everyday savings.', isIFB: false,
-    classes: [cls('DBSV', 'Basic Saving — Digital', 7, 0, '121'), cls('ZDAC', 'Z-Club Saving', 9, 50000, '122')] },
+    classes: [cls('DBSV', 'Basic Saving — Digital', 7, 0, '121'), cls('ZDAC', 'Z-Club Saving', 9, 50000, '122'),
+      cls('DFCY', 'Foreign Currency Saving Account', null, null, '838', ['USD', 'GBP', 'EUR'])] },
   { id: 'ifb-saving-account', name: 'Z-Qamar Saving Account', description: 'Interest-free savings.', isIFB: true,
     classes: [cls('DWAD', 'Wadiah Saving', null, 0, '971')] },
 ];

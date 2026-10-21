@@ -306,6 +306,7 @@ export const branchService = {
 interface CatalogClass {
   code: string; name: string; interestRate: number | null; minBalance: number | null;
   maxBalance: number | null; remarks: string; productNumber: string;
+  currencies?: string[]; // FCY class: currencies to choose from (missing / empty = ETB)
 }
 interface CatalogProduct { id: string; name: string; description: string; isIFB: boolean; classes: CatalogClass[] }
 
@@ -327,6 +328,7 @@ function toAccountType(p: CatalogProduct): AccountType {
   const tiers: AccountTier[] = p.classes.map(c => ({
     id: c.code, code: c.code, name: c.name, range: balanceRange(c), interestRate: c.interestRate,
     productNumber: c.productNumber, minBalance: c.minBalance, maxBalance: c.maxBalance, remarks: c.remarks,
+    currencies: Array.isArray(c.currencies) ? c.currencies : [],
   }));
   const rates = tiers.map(t => t.interestRate).filter((r): r is number => r !== null);
   const mins = tiers.map(t => t.minBalance).filter((m): m is number => m !== null);
@@ -370,7 +372,7 @@ export const additionalServicesService = {
 };
 
 export interface AmendForm {
-  branchCode: string; accountTypeId: string; accountClassCode: string; email: string; taxIdentity: string;
+  branchCode: string; accountTypeId: string; accountClassCode: string; currency?: string; email: string; taxIdentity: string;
   monthlyIncome: number; occupation: string; otherOccupation: string; industry: string; otherIndustry: string;
   wealthSource: string; otherWealthSource: string; motherMaidenName: string; maritalStatus: string; promotionType: string;
   isExistingCustomer: boolean; existingCif: string; existingAccountNumber: string;
