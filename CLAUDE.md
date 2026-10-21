@@ -37,11 +37,11 @@ Navigation is driven by the `Step` enum (`types.ts`) and `currentStep` in centra
 
 ```
 Landing(0) → Welcome(1) → ExistingAccount(2) → Branch(3) → AccountType(4) → FaydaId(5)
-→ Otp(6) → Review(7) → AdditionalInfo(8) → [Documents(9) SKIPPED] → FaceVerify(10) → Services(11)
+→ Otp(6) → Review(7) → AdditionalInfo(8) → [Documents(9) foreign nationals only] → FaceVerify(10) → Services(11)
 → FinalReview(12) → Success(13)
 ```
 
-**`Documents` (step 9) is skipped.** `App.tsx` defines `SKIPPED_STEPS = new Set([Step.Documents])`; `nextStep`/`prevStep` step over it and its `case` in `renderStep` is commented out. `DocumentUploadStep.tsx` still exists but is not reachable. `ProgressBar` likewise omits it (shows ExistingAccount→FinalReview as circles on `sm`+ screens and as a compact "Step x of y" bar on phones).
+**`Documents` (step 9, "Passport & Permit") — foreign nationals only.** The Fayda backend works out the nationality from the eKYC result (`nationality_eng`, else a residence status saying foreigner) and signs it into the `ekycToken`; the web app keeps it as `faydaData.nationality` (shown on Review Data). Anything other than Ethiopia (any case; `utils/nationality.ts` `isForeignNational`, the dashboard and the Fayda backend use the same rule) shows `DocumentUploadStep`: the **passport** (required) and **either a work permit or an Origin ID** (the applicant chooses; one is required). Each file is uploaded right away with `corporate/FileUpload` (`corporateService.upload`, the business accounts file store, photos shrunk on the phone, PDFs as they are) and kept as `{fileId, fileKey}` in `state.foreignDocuments`. Final Review shows a "Passport & Permit" section and refuses to submit without both; the submission sends `nationality`, `ekycToken` and `foreignDocuments: [{ type: 'passport' | 'work_permit' | 'origin_id', fileId, fileKey }]`. The Fayda backend takes the nationality from the signed token (never the browser's), the dashboard checks the files, keeps them with the application for KYC (never auto-approved) and answers 400 `code: FOREIGN_DOCUMENTS` (+ `fileId`) when one must be uploaded again — Final Review then opens the step. Amending on another device: the bank returns the files it holds (no key) and they are sent again as they are. Ethiopians skip the step (`skipped()` in `App.tsx`); for foreign nationals the progress bar gets a "Passport" step (`individualProgress(true)` passed to `WizardWrapper`). Demo mode: a Fayda ID ending in 4444 is a Kenyan.
 
 **Adding or reordering a step** shifts the numbers of saved sessions: extend `upgradeSavedState` in `App.tsx` so older sessions still resume on the same screen, and add the step to `ProgressBar` / `ResumeModal` labels.
 

@@ -1,3 +1,4 @@
+import type { UploadedFile } from './corporate/types';
 
 export interface Branch {
   id: number;
@@ -66,7 +67,18 @@ export interface FaydaCustomerData {
   zone: { eng: string; amh: string };
   woreda: { eng: string; amh: string };
   residenceStatus: { eng: string; amh: string };
+  // As Fayda gives it (worked out by the Fayda backend); other than Ethiopia = foreign national
+  nationality?: string;
   photo: string; // base64
+}
+
+// A foreign national's documents, uploaded to the bank as soon as they are chosen: the passport,
+// and a work permit or an Origin ID (either). A file the bank already holds has no fileKey.
+export interface ForeignDocumentsState {
+  passport: UploadedFile | null;
+  permitType: 'work_permit' | 'origin_id';
+  workPermit: UploadedFile | null;
+  originId: UploadedFile | null;
 }
 
 export interface OnboardingState {
@@ -95,6 +107,7 @@ export interface OnboardingState {
     promotionType: string;
   };
   documents: Array<{ base64: string; label: string }>;
+  foreignDocuments: ForeignDocumentsState; // foreign nationals only (Documents step)
   selfiePhoto: string;
   verificationPhotos: {
     faceCenter: string;

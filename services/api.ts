@@ -397,6 +397,8 @@ export interface AmendForm {
   wealthSource: string; otherWealthSource: string; motherMaidenName: string; maritalStatus: string; promotionType: string;
   isExistingCustomer: boolean; existingCif: string; existingAccountNumber: string;
   requestedServices: string[]; serviceTermsAccepted: { id: string; version: number; acceptedAt: string }[];
+  // foreign national: the passport and work permit / Origin ID the bank holds
+  foreignDocuments?: { type: string; fileId: string; fileName: string; mimeType: string; size: number }[];
 }
 
 export const applicationService = {

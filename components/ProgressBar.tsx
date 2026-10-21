@@ -19,15 +19,18 @@ const INDIVIDUAL_LABELS: Record<number, string> = {
   [Step.Otp]: "OTP",
   [Step.Review]: "Review",
   [Step.AdditionalInfo]: "Details",
-  // [Step.Documents]: "Docs",  // Commented out
+  [Step.Documents]: "Passport",
   [Step.FaceVerify]: "Face",
   [Step.Services]: "Services",
   [Step.FinalReview]: "Confirm",
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps, steps, labels }) => {
-  // We only show steps from Step.ExistingAccount to Step.FinalReview
-  const stepsArray = steps || [
+/**
+ * The individual account steps shown in the progress bar (ExistingAccount → FinalReview). The
+ * Documents step (passport and work permit / Origin ID) is there for foreign nationals only.
+ */
+export function individualProgress(foreignNational: boolean) {
+  const steps = [
     Step.ExistingAccount,
     Step.Branch,
     Step.AccountType,
@@ -35,11 +38,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps, step
     Step.Otp,
     Step.Review,
     Step.AdditionalInfo,
-    // Step.Documents,  // Commented out
+    ...(foreignNational ? [Step.Documents] : []),
     Step.FaceVerify,
     Step.Services,
     Step.FinalReview
   ];
+  return { steps, labels: INDIVIDUAL_LABELS };
+}
+
+const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps, steps, labels }) => {
+  // We only show steps from Step.ExistingAccount to Step.FinalReview
+  const stepsArray = steps || individualProgress(false).steps;
   const STEP_LABELS = labels || INDIVIDUAL_LABELS;
   const currentIndex = stepsArray.indexOf(currentStep);
 

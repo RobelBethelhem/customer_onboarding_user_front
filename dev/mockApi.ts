@@ -290,15 +290,20 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
   if (path === '/api/resend') return { status: 200, body: { success: true } };
   if (path === '/api/fayda/ekyc') {
     const who = personFor(body?.individualId);
+    // demo: a Fayda ID ending in 4444 is a foreign national (Kenya) — passport and work permit / Origin ID step
+    const foreign = String(body?.individualId || '').replace(/\D/g, '').endsWith('4444');
     return {
       status: 200,
       body: {
         psut: who.uin,
         ekycToken: ekycTokenFor(who),
+        nationality: foreign ? 'Kenya' : 'Ethiopia',
         identity: {
           name_eng: who.name, name_amh: 'ናሙና ስም', dob: '1988-04-12', gender_eng: 'Female', gender_amh: 'ሴት',
           phone: who.phone, email: '', region_eng: 'Addis Ababa', region_amh: 'አዲስ አበባ', zone_eng: 'Bole', zone_amh: 'ቦሌ',
-          woreda_eng: 'Woreda 03', woreda_amh: 'ወረዳ 03', residenceStatus_eng: 'Citizen', residenceStatus_amh: 'ዜጋ', photo: samplePhoto(),
+          woreda_eng: 'Woreda 03', woreda_amh: 'ወረዳ 03',
+          residenceStatus_eng: foreign ? 'Resident' : 'Citizen', residenceStatus_amh: foreign ? 'ነዋሪ' : 'ዜጋ',
+          nationality_eng: foreign ? 'Kenya' : 'Ethiopia', photo: samplePhoto(),
         },
       },
     };
@@ -329,6 +334,15 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
     return { status: 200, body: { success: true, found: false } };
   }
   if (path === '/api/flexcube/create-customer') {
+    (window as any).__demoLastSubmission = body; // to look at in the browser console
+    // A foreign national's passport and work permit / Origin ID, as the bank checks them
+    const nationality = String(body?.nationality || '').trim().toLowerCase();
+    if (nationality && !['ethiopia', 'ethiopian', 'et'].includes(nationality)) {
+      const docs: { type: string; fileId: string }[] = Array.isArray(body?.foreignDocuments) ? body.foreignDocuments : [];
+      if (!docs.some(d => d.type === 'passport') || !docs.some(d => d.type === 'work_permit' || d.type === 'origin_id')) {
+        return { status: 400, body: { success: false, code: 'FOREIGN_DOCUMENTS', message: 'Please upload your passport. It is required for foreign nationals.' } };
+      }
+    }
     if (!body?.existingCustomer && String(body?.uin || '').endsWith('3333')) {
       return { status: 409, body: { success: false, code: 'EXISTING_CUSTOMER', message: 'You already have an account with Zemen Bank. You can open another account under your existing customer profile.' } };
     }

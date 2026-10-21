@@ -1,13 +1,16 @@
 
 import React, { useState } from 'react';
 import {
-  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send, UserCheck, Smartphone,
+  Loader2, Pencil, User, MapPin, Landmark, Wallet, Camera, ShieldCheck, Send, UserCheck, Smartphone, Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
 import { faydaService, formatRate } from '../services/api';
 import ExistingCustomerPrompt, { ExistingCustomerMatch } from '../components/ExistingCustomerPrompt';
 import { findExistingCustomer, asExistingCustomer } from '../utils/existingCustomer';
+import {
+  isForeignNational, foreignDocumentsComplete, foreignDocumentRefs, chosenPermit, FOREIGN_DOCUMENT_LABELS,
+} from '../utils/nationality';
 import {
   OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, chosenServiceNames, isIfbAccountType,
   currencyLabel,
@@ -42,6 +45,8 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
   const [existing, setExisting] = useState<ExistingCustomerMatch | null>(null);
 
   const { faydaData, additionalInfo, selectedBranch, selectedAccountType, selectedTier } = state;
+  // Fayda nationality other than Ethiopia: passport and work permit / Origin ID go with the application
+  const foreignNational = isForeignNational(faydaData?.nationality);
 
   // Uppercase a string value (skip empty/falsy) — mirrors the original FlexCube payload formatting
   const uc = (val: string | undefined | null): string => (val || '').toUpperCase();
@@ -52,6 +57,11 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
     if (currencies.length && !currencies.includes(state.selectedCurrency)) {
       toast.error('Please choose the currency of your account.');
       onEdit(Step.AccountType);
+      return;
+    }
+    if (foreignNational && !foreignDocumentsComplete(state.foreignDocuments)) {
+      toast.error('Please upload your passport and your work permit or Origin ID.');
+      onEdit(Step.Documents);
       return;
     }
     setIsSubmitting(true);
@@ -68,7 +78,10 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
         dateOfBirth: state.faydaData?.dateOfBirth || '',
         gender: state.faydaData?.gender.eng === 'Male' ? 'M' : 'F',
         salutation: state.faydaData?.gender.eng === 'Male' ? 'ATO' : 'W/RO',
-        nationality: 'ET',
+        // As Fayda gives it; the Fayda backend takes it from its signed eKYC result (ekycToken)
+        nationality: faydaData?.nationality || '',
+        ekycToken: state.ekycToken || '',
+        foreignDocuments: foreignNational ? foreignDocumentRefs(state.foreignDocuments) : [],
         faydaId: state.fcn,
         uin: state.faydaData?.uin || '',
         mobile: state.faydaData?.phone || '',
@@ -138,6 +151,12 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
           return;
         }
         toast.error(`${err.message} Tap Edit on "Existing Customer" and enter your account number or CIF.`);
+        return;
+      }
+      // A document upload expired or was refused: upload it again
+      if (err?.data?.code === 'FOREIGN_DOCUMENTS') {
+        toast.error(err.message);
+        onEdit(Step.Documents);
         return;
       }
       toast.error(err.message || 'Submission failed');
@@ -254,6 +273,18 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
           <Row label="Phone" value={faydaData?.phone || '—'} />
           <Row label="Region / Zone / Woreda" value={[faydaData?.region.eng, faydaData?.zone.eng, faydaData?.woreda.eng].filter(Boolean).join(' / ') || '—'} />
         </Section>
+
+        {/* Foreign national: passport and work permit / Origin ID */}
+        {foreignNational && (
+          <Section title="Passport & Permit" icon={<Globe className="w-4 h-4" />} onEdit={() => onEdit(Step.Documents)}>
+            <Row label="Nationality" value={faydaData?.nationality || '—'} />
+            <Row label={FOREIGN_DOCUMENT_LABELS.passport} value={state.foreignDocuments.passport?.fileName || 'Not uploaded'} />
+            <Row
+              label={FOREIGN_DOCUMENT_LABELS[state.foreignDocuments.permitType]}
+              value={chosenPermit(state.foreignDocuments)?.fileName || 'Not uploaded'}
+            />
+          </Section>
+        )}
 
         {/* Additional info */}
         <Section title="Additional Information" icon={<Wallet className="w-4 h-4" />} onEdit={() => onEdit(Step.AdditionalInfo)}>

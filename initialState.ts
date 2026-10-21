@@ -1,4 +1,5 @@
 import { OnboardingState, Step } from './types';
+import { EMPTY_FOREIGN_DOCUMENTS } from './utils/nationality';
 
 /** A fresh individual account application (also the identity part of the business wizards) */
 export const INITIAL_STATE: OnboardingState = {
@@ -26,6 +27,7 @@ export const INITIAL_STATE: OnboardingState = {
     promotionType: '',
   },
   documents: [],
+  foreignDocuments: EMPTY_FOREIGN_DOCUMENTS,
   selfiePhoto: '',
   verificationPhotos: {
     faceCenter: '',

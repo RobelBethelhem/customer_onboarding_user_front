@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShieldCheck, Timer, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { OnboardingState } from '../types';
+import { OnboardingState, FaydaCustomerData } from '../types';
 import { faydaService } from '../services/api';
 import ExistingCustomerPrompt, { ExistingCustomerMatch } from '../components/ExistingCustomerPrompt';
 import { findExistingCustomer, asExistingCustomer } from '../utils/existingCustomer';
+import { EMPTY_FOREIGN_DOCUMENTS } from '../utils/nationality';
 
 
 
@@ -49,6 +50,9 @@ function mapToFaydaCustomerData(response: any): FaydaCustomerData {
       eng: identity.residenceStatus_eng,
       amh: identity.residenceStatus_amh,
     },
+
+    // Worked out by the Fayda backend from Fayda's nationality (or residence status)
+    nationality: String(response.nationality || identity.nationality_eng || identity.nationality || '').trim(),
 
     photo: identity.photo,
   };
@@ -141,7 +145,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack,
         middleName: nameParts[1] || '',
         lastName: nameParts.slice(2).join(' ') || '',
         dateOfBirth: customerData.dateOfBirth,
-        nationality: 'ET'
+        nationality: customerData.nationality || 'ET'
       });
 
       const screening: any = ( screeningResult as any).data || screeningResult;
@@ -155,7 +159,12 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack,
         return;
       }
 
-      onUpdate({ faydaData: customerData, ekycToken: rawResponse.ekycToken || '' });
+      onUpdate({
+        faydaData: customerData,
+        ekycToken: rawResponse.ekycToken || '',
+        // Documents uploaded for someone else (another Fayda ID verified since) are not theirs
+        ...(state.faydaData && state.faydaData.uin !== customerData.uin ? { foreignDocuments: EMPTY_FOREIGN_DOCUMENTS } : {}),
+      });
       if (screening.hasPEP || screening.requiresSecondLevelApproval) {
         toast.info('Additional verification required — your application will undergo enhanced review.');
       } else {

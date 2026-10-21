@@ -84,6 +84,7 @@ const DataReviewStep: React.FC<Props> = ({ state, onNext, onBack }) => {
               <DetailRow label="Zone" value={data.zone.eng} />
               <DetailRow label="Woreda" value={data.woreda.eng} />
               <DetailRow label="Status" value={data.residenceStatus.eng} />
+              {data.nationality && <DetailRow label="Nationality" value={data.nationality} />}
             </div>
           </div>
         </div>

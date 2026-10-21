@@ -27,6 +27,8 @@ import SuccessStep from './steps/SuccessStep';
 import CorporateApp from './corporate/CorporateApp';
 import InviteApp from './corporate/InviteApp';
 import StatusPage from './corporate/StatusPage';
+import { individualProgress } from './components/ProgressBar';
+import { isForeignNational, EMPTY_FOREIGN_DOCUMENTS, foreignDocumentsFromBank } from './utils/nationality';
 
 // Sessions saved by an older version of the wizard: shift the step number past steps added
 // since, so a resumed session opens on the same screen.
@@ -60,6 +62,7 @@ function upgradeSavedState(saved: OnboardingState): OnboardingState {
     faceMatched: state.faceMatched ?? null,
     branchFromCif: state.branchFromCif ?? false,
     selectedCurrency: state.selectedCurrency || '',
+    foreignDocuments: state.foreignDocuments || EMPTY_FOREIGN_DOCUMENTS,
   };
   return state;
 }
@@ -201,6 +204,8 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
           requestedServices: f.requestedServices,
           selectedServices: services.filter(s => f.requestedServices.includes(s.id)).map(s => ({ id: s.id, name: s.name, icon: s.icon })),
           serviceTermsAccepted: f.serviceTermsAccepted.map(a => ({ ...a, acceptedAt: String(a.acceptedAt || '') })),
+          // Passport and work permit / Origin ID the bank already holds (foreign nationals)
+          foreignDocuments: foreignDocumentsFromBank(f.foreignDocuments),
         }));
         toast.success('Your application is loaded. After the face check you can review and change it.');
       } catch (e: any) {
@@ -253,12 +258,11 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
   // after the edited step is confirmed (instead of walking forward through every step).
   const [editReturn, setEditReturn] = useState<number | null>(null);
 
-  // Steps to skip (commented-out steps)
-  const SKIPPED_STEPS = new Set([Step.Documents]);
-
-  // Existing customer whose home branch came from FlexCube: no branch to choose
+  // Steps to skip: Documents (passport and work permit / Origin ID) unless Fayda gives a nationality
+  // other than Ethiopia; Branch for an existing customer whose home branch came from FlexCube
   const skipped = (s: OnboardingState, step: number) =>
-    SKIPPED_STEPS.has(step) || (step === Step.Branch && !!s.hasExistingAccount && !!s.branchFromCif);
+    (step === Step.Documents && !isForeignNational(s.faydaData?.nationality)) ||
+    (step === Step.Branch && !!s.hasExistingAccount && !!s.branchFromCif);
 
   const nextStep = useCallback(() => {
     setState(prev => {
@@ -314,6 +318,9 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
 
   // Interest-Free Banking product selected: green theme, Z-Qamar logo and background
   const isIfb = isIfbAccountType(state.selectedAccountType);
+  // Foreign national: the progress bar has the Documents step too
+  const foreignNational = isForeignNational(state.faydaData?.nationality);
+  const progress = foreignNational ? individualProgress(true) : undefined;
 
   const renderStep = useMemo(() => {
     switch (state.currentStep) {
@@ -321,89 +328,88 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
         return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} onAmend={handleAmend} />;
       case Step.Welcome:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <WelcomeStep onNext={nextStep} />
           </WizardWrapper>
         );
       case Step.ExistingAccount:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <ExistingAccountStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Branch:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <BranchSelectionStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.AccountType:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <AccountTypeStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.FaydaId:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <FaydaIdStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Otp:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <OtpVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep}
               checkExistingCustomer onExit={exitToHome} />
           </WizardWrapper>
         );
       case Step.Review:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <DataReviewStep state={state} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.AdditionalInfo:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <AdditionalInfoStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
-      /* Documents step commented out — skipped in flow
+      // Foreign nationals only (see skipped)
       case Step.Documents:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <DocumentUploadStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
-      */
       case Step.FaceVerify:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <FaceVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.Services:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <ServicesStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
           </WizardWrapper>
         );
       case Step.FinalReview:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <FinalReviewStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} onEdit={goToStep} onExit={exitToHome} />
           </WizardWrapper>
         );
       case Step.Success:
         return (
-          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
+          <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb} progress={progress}>
             <SuccessStep state={state} onAmend={amendApplication} />
           </WizardWrapper>
         );
       default:
         return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} onAmend={handleAmend} />;
     }
-  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness, handleAmend, exitToHome]);
+  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness, handleAmend, exitToHome, progress]);
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)

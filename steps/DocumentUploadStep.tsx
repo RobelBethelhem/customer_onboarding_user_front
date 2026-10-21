@@ -1,7 +1,10 @@
 
-import React, { useCallback } from 'react';
-import { Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
-import { OnboardingState } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Globe, Briefcase, IdCard, AlertCircle } from 'lucide-react';
+import { OnboardingState, ForeignDocumentsState } from '../types';
+import FileUpload from '../corporate/FileUpload';
+import { corporateService } from '../corporate/api';
+import { FOREIGN_DOCUMENT_LABELS, foreignDocumentsComplete } from '../utils/nationality';
 
 interface Props {
   state: OnboardingState;
@@ -10,102 +13,119 @@ interface Props {
   onBack: () => void;
 }
 
+const PERMITS: { id: ForeignDocumentsState['permitType']; title: string; text: string; icon: React.ElementType }[] = [
+  { id: 'work_permit', title: 'Work permit', text: 'Issued to you for working in Ethiopia', icon: Briefcase },
+  { id: 'origin_id', title: 'Origin ID', text: 'For foreign nationals of Ethiopian origin', icon: IdCard },
+];
+
+/**
+ * Foreign nationals only (Fayda nationality other than Ethiopia): the passport, and a work permit or
+ * an Origin ID — whichever they have. Each file is uploaded to the bank as soon as it is chosen;
+ * the application then sends their ids, and KYC reviews them.
+ */
 const DocumentUploadStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
+  const docs = state.foreignDocuments;
+  const [maxFileMb, setMaxFileMb] = useState(5);
+  const [tried, setTried] = useState(false);
 
-  const compressAndToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (e) => {
-        const img = new Image();
-        img.src = e.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1200;
+  // The bank's upload limit (same as for business documents)
+  useEffect(() => {
+    corporateService.catalog().then(c => c?.rules?.maxFileMb && setMaxFileMb(c.rules.maxFileMb)).catch(() => {});
+  }, []);
 
-          if (width > height && width > maxDim) {
-            height = (height * maxDim) / width;
-            width = maxDim;
-          } else if (height > maxDim) {
-            width = (width * maxDim) / height;
-            height = maxDim;
-          }
+  const set = (patch: Partial<ForeignDocumentsState>) => onUpdate({ foreignDocuments: { ...docs, ...patch } });
+  const auth = { ekycToken: state.ekycToken || '' };
+  const permit = PERMITS.find(p => p.id === docs.permitType)!;
+  const complete = foreignDocumentsComplete(docs);
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const base64 = canvas.toDataURL('image/jpeg', 0.75);
-          resolve(base64.split(',')[1]); // Strip prefix
-        };
-      };
-    });
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Fix: Explicitly cast to File[] to avoid 'unknown' type inference from Array.from(FileList)
-    const files = Array.from(e.target.files || []) as File[];
-    const newDocs = await Promise.all(files.map(async (f, i) => ({
-      base64: await compressAndToBase64(f),
-      label: `Document ${state.documents.length + i + 1}`
-    })));
-    onUpdate({ documents: [...state.documents, ...newDocs] });
-  };
-
-  const removeDoc = (index: number) => {
-    const updated = state.documents.filter((_, i) => i !== index);
-    onUpdate({ documents: updated });
+  const handleContinue = () => {
+    setTried(true);
+    if (complete) onNext();
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="p-6 border-b border-gray-100">
-        <h2 className="text-xl font-bold text-gray-800">Upload Documents</h2>
-        <p className="text-sm text-gray-500">Attach ID cards, marriage certificates, etc.</p>
+        <h2 className="text-xl font-bold text-gray-800">Passport &amp; Permit</h2>
+        <p className="text-sm text-gray-500">
+          Your Fayda record shows your nationality as <span className="font-semibold text-gray-700">{state.faydaData?.nationality}</span>.
+          Please upload your passport and either your work permit or your Origin ID.
+        </p>
       </div>
 
-      <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
-        <label className="block border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center cursor-pointer hover:border-[#ed1c24]/40 hover:bg-red-50/20 transition-all group">
-          <input type="file" multiple accept="image/*" onChange={handleFileChange} className="hidden" />
-          <div className="inline-flex p-4 bg-gray-50 rounded-full group-hover:bg-red-50 mb-4 transition-colors">
-            <Upload className="w-8 h-8 text-gray-400 group-hover:text-[#ed1c24]" />
-          </div>
-          <p className="text-gray-600 font-bold">Click to browse or drag & drop</p>
-          <p className="text-xs text-gray-400 mt-1">JPEG, PNG supported (Max 5MB per file)</p>
-        </label>
+      <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-5">
+        <FileUpload
+          kind="document"
+          label={FOREIGN_DOCUMENT_LABELS.passport}
+          description="The page with your photo and passport details"
+          required
+          value={docs.passport}
+          onChange={file => set({ passport: file })}
+          auth={auth}
+          maxFileMb={maxFileMb}
+          error={tried && !docs.passport ? 'Your passport is required.' : undefined}
+        />
 
-        {state.documents.length > 0 && (
-          <div className="grid grid-cols-2 gap-4">
-            {state.documents.map((doc, idx) => (
-              <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-100 bg-gray-50 aspect-video flex items-center justify-center">
-                <img src={`data:image/jpeg;base64,${doc.base64}`} alt={doc.label} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button onClick={() => removeDoc(idx)} className="p-2 bg-red-600 text-white rounded-full">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                  <p className="text-[10px] font-bold text-white uppercase">{doc.label}</p>
-                </div>
-              </div>
-            ))}
+        <div>
+          <p className="text-sm font-bold text-gray-800 mb-2">Which document will you give? <span className="text-brand">*</span></p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {PERMITS.map(p => {
+              const active = docs.permitType === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => set({ permitType: p.id })}
+                  className={`flex items-start gap-3 p-3 rounded-2xl border-2 text-left transition-colors ${
+                    active ? 'border-brand bg-brand/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  <span className={`p-2 rounded-xl ${active ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    <p.icon className="w-4 h-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-bold text-gray-800">{p.title}</span>
+                    <span className="block text-xs text-gray-500">{p.text}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        <FileUpload
+          key={permit.id}
+          kind="document"
+          label={permit.title}
+          description={permit.id === 'origin_id' ? 'Both sides of your Origin ID card' : 'Your valid work permit'}
+          required
+          value={permit.id === 'origin_id' ? docs.originId : docs.workPermit}
+          onChange={file => set(permit.id === 'origin_id' ? { originId: file } : { workPermit: file })}
+          auth={auth}
+          maxFileMb={maxFileMb}
+          error={tried && !(permit.id === 'origin_id' ? docs.originId : docs.workPermit) ? (permit.id === 'origin_id' ? 'Your Origin ID is required.' : 'Your work permit is required.') : undefined}
+        />
+
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-800">
+          <Globe className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          Our KYC team checks these documents before your account is opened.
+        </div>
+
+        {!state.ekycToken && (
+          <p className="text-xs text-red-600 flex items-start gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            Please verify with your Fayda ID again before uploading.
+          </p>
         )}
-
-        <button className="w-full text-center text-sm font-bold text-gray-400 py-2 hover:text-[#ed1c24] transition-colors">
-          Proceed without documents
-        </button>
       </div>
 
       <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-4">
         <button onClick={onBack} className="flex-1 py-3 text-gray-600 font-semibold border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
           Back
         </button>
-        <button 
-          onClick={onNext}
-          className="flex-[2] py-3 bg-[#ed1c24] text-white font-bold rounded-xl shadow-lg shadow-red-200"
+        <button
+          onClick={handleContinue}
+          className={`flex-[2] py-3 font-bold rounded-xl transition-all ${
+            complete ? 'bg-brand text-white shadow-lg shadow-brand-200 hover:bg-brand-dark' : 'bg-gray-200 text-gray-500'}`}
         >
           Continue
         </button>
