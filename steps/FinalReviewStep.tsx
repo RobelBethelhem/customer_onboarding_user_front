@@ -6,6 +6,8 @@ import {
 import { toast } from 'sonner';
 import { OnboardingState, Step } from '../types';
 import { faydaService, formatRate } from '../services/api';
+import ExistingCustomerPrompt, { ExistingCustomerMatch } from '../components/ExistingCustomerPrompt';
+import { findExistingCustomer, asExistingCustomer } from '../utils/existingCustomer';
 import {
   OCCUPATIONS, INDUSTRIES, WEALTH_SOURCES, MARITAL_STATUSES, PROMOTION_TYPES, chosenServiceNames, isIfbAccountType,
   currencyLabel,
@@ -17,6 +19,7 @@ interface Props {
   onNext: () => void;
   onBack: () => void;
   onEdit: (step: number) => void;
+  onExit?: () => void; // "No" to opening the account under an existing CIF — back to the home page
 }
 
 /** Ensure base64 photo string has a proper data URI prefix for <img src> */
@@ -34,8 +37,9 @@ const labelFor = (options: { value: string; label: string }[], value: string): s
   return found ? found.label : value;
 };
 
-const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onEdit }) => {
+const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onEdit, onExit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existing, setExisting] = useState<ExistingCustomerMatch | null>(null);
 
   const { faydaData, additionalInfo, selectedBranch, selectedAccountType, selectedTier } = state;
 
@@ -126,11 +130,36 @@ const FinalReviewStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, onE
       onUpdate({ result });
       onNext();
     } catch (err: any) {
+      // Said they have no account, but their Fayda national ID already has a CIF at the bank
+      if (err?.data?.code === 'EXISTING_CUSTOMER') {
+        const match = await findExistingCustomer(state.ekycToken || '');
+        if (match) {
+          setExisting(match);
+          return;
+        }
+        toast.error(`${err.message} Tap Edit on "Existing Customer" and enter your account number or CIF.`);
+        return;
+      }
       toast.error(err.message || 'Submission failed');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (existing) {
+    return (
+      <ExistingCustomerPrompt
+        match={existing}
+        accountName={selectedTier?.name}
+        onYes={() => {
+          onUpdate(asExistingCustomer(existing));
+          setExisting(null);
+          toast.success('Your new account will be opened under your customer profile. Check the details and submit again.');
+        }}
+        onNo={() => (onExit ? onExit() : setExisting(null))}
+      />
+    );
+  }
 
   const occupationDisplay = additionalInfo.occupation === 'O'
     ? `Other — ${additionalInfo.otherOccupation || '—'}`

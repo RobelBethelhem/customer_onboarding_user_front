@@ -152,6 +152,8 @@ const ekycTokenFor = (p: { name: string; uin: string }) => `demo-ekyc.${btoa(JSO
 function readEkyc(token: unknown): { name: string; uin: string } | null {
   try { return JSON.parse(atob(String(token || '').split('.')[1] || '')); } catch { return null; }
 }
+// people looked up by Fayda national ID in this page (demo: the first lookup of a ...3333 fails)
+const lookedUp = new Set<string>();
 
 // ─── Applications kept in this browser ───────────────────────────────────────────────────────
 const apps = () => load(STORE);
@@ -313,7 +315,23 @@ function route(api: string, path: string, q: URLSearchParams, method: string, bo
     if (body?.cif === '1111111') return { status: 409, body: { success: false, found: true, restricted: true, message: 'One of your accounts is frozen. Please visit a Zemen Bank branch to continue.' } };
     return { status: 200, body: { success: true, found: true, branchCode: BRANCHES[0].branchCode } };
   }
+  if (path === '/api/flexcube/customer-by-fayda') {
+    // demo: a Fayda ID ending in 1111 is already CIF 2222222; ending in 2222 has a frozen account;
+    // ending in 3333 cannot be checked now (the bank refuses the second CIF on submission instead)
+    const uin = readEkyc(body?.ekycToken)?.uin || '';
+    if (uin.endsWith('1111')) return { status: 200, body: { success: true, found: true, cif: '2222222', branchCode: BRANCHES[0].branchCode } };
+    if (uin.endsWith('2222')) return { status: 409, body: { success: false, found: true, restricted: true, message: 'One of your accounts is frozen. Please visit a Zemen Bank branch to continue.' } };
+    if (uin.endsWith('3333') && !lookedUp.has(uin)) {
+      lookedUp.add(uin); // the first check (right after the OTP) cannot be done
+      return err('We could not check our records right now.', 503);
+    }
+    if (uin.endsWith('3333')) return { status: 200, body: { success: true, found: true, cif: '3333333', branchCode: BRANCHES[1].branchCode } };
+    return { status: 200, body: { success: true, found: false } };
+  }
   if (path === '/api/flexcube/create-customer') {
+    if (!body?.existingCustomer && String(body?.uin || '').endsWith('3333')) {
+      return { status: 409, body: { success: false, code: 'EXISTING_CUSTOMER', message: 'You already have an account with Zemen Bank. You can open another account under your existing customer profile.' } };
+    }
     return { status: 200, body: { success: true, status: 'pending', customerId: `DEMO-${rand(6)}`, message: 'Application received (demo)' } };
   }
 

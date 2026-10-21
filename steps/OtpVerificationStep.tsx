@@ -4,6 +4,8 @@ import { ShieldCheck, Timer, RefreshCw, Loader2, AlertCircle } from 'lucide-reac
 import { toast } from 'sonner';
 import { OnboardingState } from '../types';
 import { faydaService } from '../services/api';
+import ExistingCustomerPrompt, { ExistingCustomerMatch } from '../components/ExistingCustomerPrompt';
+import { findExistingCustomer, asExistingCustomer } from '../utils/existingCustomer';
 
 
 
@@ -58,14 +60,20 @@ interface Props {
   onUpdate: (updates: Partial<OnboardingState>) => void;
   onNext: () => void;
   onBack: () => void;
+  // Individual applicant who said they have no account: check whether their Fayda national ID
+  // already has a CIF, and offer to open the account under it
+  checkExistingCustomer?: boolean;
+  onExit?: () => void; // "No" — back to the home page
 }
 
-const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
+const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack, checkExistingCustomer, onExit }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
   const [canResend, setCanResend] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
+  const [loadingText, setLoadingText] = useState('Verifying Identity...');
+  const [existing, setExisting] = useState<ExistingCustomerMatch | null>(null);
   const inputs = useRef<HTMLInputElement[]>([]);
 
   useEffect(() => {
@@ -118,6 +126,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
     }
 
     setIsLoading(true);
+    setLoadingText('Verifying Identity...');
     try {
       const rawResponse  = await faydaService.validateOtp(otpString, state.fcn, state.token);
       
@@ -152,6 +161,15 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
       } else {
         toast.success('Identity verified successfully');
       }
+      // Said they have no account: is their Fayda national ID already a customer of the bank?
+      if (checkExistingCustomer && state.hasExistingAccount === false) {
+        setLoadingText('Checking our records...');
+        const match = await findExistingCustomer(rawResponse.ekycToken || '');
+        if (match) {
+          setExisting(match);
+          return;
+        }
+      }
       onNext();
     } catch (err: any) {
       toast.error(err.message || 'OTP Verification failed');
@@ -165,6 +183,24 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Already a customer: open the account under their CIF (Yes) or stop (No)
+  if (existing) {
+    return (
+      <ExistingCustomerPrompt
+        match={existing}
+        accountName={state.selectedTier?.name}
+        onYes={() => {
+          onUpdate(asExistingCustomer(existing));
+          toast.success(existing.branch
+            ? `Your new account will be opened under your customer profile, at your home branch: ${existing.branch.name}`
+            : 'Your new account will be opened under your customer profile');
+          onNext();
+        }}
+        onNo={() => (onExit ? onExit() : onBack())}
+      />
+    );
+  }
 
   if (showBlocked) {
     return (
@@ -192,7 +228,7 @@ const OtpVerificationStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack 
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
           <Loader2 className="w-12 h-12 text-brand animate-spin mb-4" />
-          <p className="font-semibold text-gray-800">Verifying Identity...</p>
+          <p className="font-semibold text-gray-800">{loadingText}</p>
         </div>
       )}
 

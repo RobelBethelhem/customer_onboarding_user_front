@@ -302,6 +302,16 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // "No" to opening another account under their existing CIF: back to the home page, nothing kept
+  const exitToHome = useCallback(() => {
+    clearSession();
+    setSavedSessionData(null);
+    setEditReturn(null);
+    setState(prev => ({ ...INITIAL_STATE, referralCode: prev.referralCode, referrerName: prev.referrerName }));
+    toast.info('Thank you. You can open another account under your customer profile any time.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Interest-Free Banking product selected: green theme, Z-Qamar logo and background
   const isIfb = isIfbAccountType(state.selectedAccountType);
 
@@ -342,7 +352,8 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
       case Step.Otp:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
-            <OtpVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} />
+            <OtpVerificationStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep}
+              checkExistingCustomer onExit={exitToHome} />
           </WizardWrapper>
         );
       case Step.Review:
@@ -380,7 +391,7 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
       case Step.FinalReview:
         return (
           <WizardWrapper step={state.currentStep} referrerName={state.referrerName} ifb={isIfb}>
-            <FinalReviewStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} onEdit={goToStep} />
+            <FinalReviewStep state={state} onUpdate={updateState} onNext={nextStep} onBack={prevStep} onEdit={goToStep} onExit={exitToHome} />
           </WizardWrapper>
         );
       case Step.Success:
@@ -392,7 +403,7 @@ const IndividualApp: React.FC<{ onStartBusiness: () => void }> = ({ onStartBusin
       default:
         return <LandingPage onStart={handleStartOnboarding} onStartBusiness={onStartBusiness} onAmend={handleAmend} />;
     }
-  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness, handleAmend]);
+  }, [state, nextStep, prevStep, updateState, handleStartOnboarding, goToStep, amendApplication, onStartBusiness, handleAmend, exitToHome]);
 
   return (
     // Interest-Free Banking products switch the wizard's brand colour to green (see index.html)

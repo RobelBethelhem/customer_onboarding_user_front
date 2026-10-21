@@ -16,7 +16,10 @@ async function postRequest<T,>(path: string, body: any): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    // the status and the answer go with the error (e.g. code EXISTING_CUSTOMER from create-customer)
+    throw Object.assign(new Error(errorData.message || `Request failed with status ${response.status}`), {
+      status: response.status, data: errorData,
+    });
   }
 
   return response.json();
@@ -164,6 +167,23 @@ export const faydaService = {
     if (response.status === 409 && data.restricted) return { found: true, restricted: true, message: data.message };
     if (response.status === 404 || response.status === 400) return { found: false, message: data.message };
     throw new Error(data.message || 'We could not check your account right now.');
+  },
+
+  /**
+   * Right after the Fayda OTP: is this person already a customer? The Fayda backend looks up the
+   * national ID of the eKYC it signed (FlexCube STTM_CUST_PERSONAL.P_NATIONAL_ID).
+   */
+  customerByFayda: async (ekycToken: string): Promise<{ found: boolean; cif?: string; branchCode?: string; restricted?: boolean; message?: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/flexcube/customer-by-fayda`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ekycToken }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) return data.found ? { found: true, cif: String(data.cif || ''), branchCode: String(data.branchCode || '') } : { found: false };
+    // an account of theirs is frozen or on No-Debit: the customer must go to the branch
+    if (response.status === 409 && data.restricted) return { found: true, restricted: true, message: data.message };
+    throw new Error(data.message || 'We could not check our records right now.');
   },
 
   submitOnboarding: (payload: any) =>

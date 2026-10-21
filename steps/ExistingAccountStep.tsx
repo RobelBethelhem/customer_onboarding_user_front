@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { UserCheck, UserPlus, Info, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Branch, OnboardingState } from '../types';
-import { faydaService, branchService } from '../services/api';
-import { BRANCHES } from '../constants';
+import { OnboardingState } from '../types';
+import { faydaService } from '../services/api';
+import { homeBranch } from '../utils/existingCustomer';
 
 interface Props {
   state: OnboardingState;
@@ -16,17 +16,6 @@ type IdType = 'account' | 'cif';
 
 // Account number layout: BRN(3) + product(3) + CIF(7) + SEQ(3) — the CIF is digits 7–13
 const cifFromAccountNumber = (accountNumber: string) => accountNumber.substring(6, 13);
-
-/**
- * The branch directory entry of a FlexCube home branch code. An IFB code (e.g. 664) gives its
- * conventional branch — interest-free accounts are mapped back to the IFB code when submitted.
- */
-async function homeBranch(code: string): Promise<Branch> {
-  let list: Branch[] = [];
-  try { list = (await branchService.list()).data || []; } catch { list = BRANCHES; }
-  return list.find(b => b.branchCode === code) || list.find(b => b.ifbCode === code)
-    || { id: 0, name: `Branch ${code}`, category: 'City', type: 'Branch', latitude: null, longitude: null, branchCode: code };
-}
 
 const ExistingAccountStep: React.FC<Props> = ({ state, onUpdate, onNext, onBack }) => {
   const [hasAccount, setHasAccount] = useState<boolean | null>(state.hasExistingAccount ?? null);
