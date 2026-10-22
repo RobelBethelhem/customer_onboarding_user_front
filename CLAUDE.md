@@ -29,6 +29,8 @@ This is a frontend-only repo; it calls two remote backends defined at the top of
 
 The URL referral code is validated through `referralService.validateCode` (`DASHBOARD_URL`). Business account calls go to `api1/api/corporate/*`: the Fayda backend relays them to the dashboard's public corporate API.
 
+Both addresses can be set at build time for another domain (e.g. UAT): `VITE_API_BASE_URL` / `VITE_DASHBOARD_URL` (the `Dockerfile` takes them as build args). Production: the `Dockerfile` builds the app and serves `dist/` with nginx; the nginx configuration (TLS, `/api1` and the allowlisted `/api2` paths to the backend gateway) is in the deployment kit, not in this repo. The production nginx forwards only the `/api2` paths this app calls (branches, account-products, additional-services, applications/status, applications/amend, referrals/*) — a new `api2` call needs adding there too.
+
 ## Architecture
 
 ### Wizard Flow (Step-Based SPA, no router)

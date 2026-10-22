@@ -1,7 +1,9 @@
 import type { AccountTier, AccountType, AdditionalService, Branch, LivenessFrame } from '../types';
 
-export const API_BASE_URL = 'https://onboard.zemenbank.com/api1'; // Default per prompt instructions
-const DASHBOARD_URL = 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
+// Set at build time for another domain (e.g. UAT): VITE_API_BASE_URL / VITE_DASHBOARD_URL
+const buildEnv = (import.meta as any).env || {};
+export const API_BASE_URL: string = buildEnv.VITE_API_BASE_URL || 'https://onboard.zemenbank.com/api1'; // Fayda backend
+const DASHBOARD_URL: string = buildEnv.VITE_DASHBOARD_URL || 'https://onboard.zemenbank.com/api2'; // Dashboard backend for referral APIs
 
 async function postRequest<T,>(path: string, body: any): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
